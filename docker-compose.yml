@@ -1,0 +1,40 @@
+# food-delivery/docker-compose.yml
+version: "3.8"
+
+services:
+  php:
+    build: .
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - db
+
+  # New Apache service
+  apache:
+    image: httpd:2.4
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+      - ./apache.conf:/usr/local/apache2/conf/httpd.conf
+    depends_on:
+      - php
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: food_user
+      POSTGRES_PASSWORD: secure_password
+      POSTGRES_DB: food_delivery
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
