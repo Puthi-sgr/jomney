@@ -1,1 +1,5 @@
 .qodo
+
+#env
+.env
+apache.conf
