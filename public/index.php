@@ -1,21 +1,29 @@
-# public/index.php
+
 <?php
 require __DIR__.'/../vendor/autoload.php';
 
+use App\Controllers\MenuController;
+use App\Core\Router;
+use App\Core\ErrorHandler;
+
+//.env
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__, '/../');
+$dotenv->load();
 // Load environment variables
 \App\Core\Config::load();
 
+$router = new Router();
 // Display PHP configuration information
-phpinfo();
+
+// Define the routes
+$router->get('/menu', [new MenuController(), 'index']);
+$router->get('/menu/create', [new MenuController(), 'create']);
 
 // Basic routing example
-$request = $_SERVER['REQUEST_URI'];
+$requestMethod = $_SERVER['REQUEST_METHOD'];
+//provide the uri requested by the client
+$request = $_SERVER['REQUEST_URI']; //tell the app how to handle the request
 
-switch ($request) {
-    case '/':
-        echo "Welcome to Food Delivery!";
-        break;
-    default:
-        http_response_code(404);
-        echo "Page not found";
-}
+set_exception_handler([ErrorHandler::class, 'handleException']);
+
+$router->dispatch($requestMethod, $request);
