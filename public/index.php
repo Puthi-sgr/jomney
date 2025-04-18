@@ -18,6 +18,7 @@ $router = new Router();
 // Define the routes
 $router->get('/menu', [new MenuController(), 'index']);
 $router->get('/menu/create', [new MenuController(), 'create']);
+$router->post('/menu/store', [new MenuController(), 'store']);
 
 // Basic routing example
 $requestMethod = $_SERVER['REQUEST_METHOD'];
