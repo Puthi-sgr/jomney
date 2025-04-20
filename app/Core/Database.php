@@ -31,5 +31,6 @@ class Database
     public function getConnection(): PDO
     {
         return $this->connection;
+        //returns the status of the PDO
     }
 }

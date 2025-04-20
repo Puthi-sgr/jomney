@@ -16,6 +16,10 @@ $router = new Router();
 // Display PHP configuration information
 
 // Define the routes
+$router->get('/', function (){
+        echo "This is a public's homepage";
+    });
+
 $router->get('/menu', [new MenuController(), 'index']);
 $router->get('/menu/create', [new MenuController(), 'create']);
 $router->post('/menu/store', [new MenuController(), 'store']);

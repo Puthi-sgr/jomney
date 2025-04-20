@@ -10,6 +10,7 @@ try{
         $_ENV["DB_PASSWORD"]
     );
     echo "Database connected successfully";
+    
 }catch(PDOException $e){
     die("Connection failed: " . $e->getMessage());
 }
