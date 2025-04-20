@@ -13,8 +13,8 @@ class Database
     {
         $host = $_ENV['DB_HOST'] ?? 'postgres';
         $db   = $_ENV['DB_NAME'] ?? 'fooddb';
-        $user = $_ENV['DB_USER'] ?? 'fooduser';
-        $pass = $_ENV['DB_PASS'] ?? 'foodpass';
+        $user = $_ENV['DB_USER'] ?? 'food_user';
+        $pass = $_ENV['DB_PASS'] ?? 'secure_password';
 
         $dsn = "pgsql:host=$host;dbname=$db;";
 

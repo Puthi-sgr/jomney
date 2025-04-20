@@ -1,12 +1,13 @@
 <?php
 namespace App\Core;
 use App\Core\NotFoundException;
+use App\Middleware\AuthMiddleware;
 
 class Router{
     protected array $routes = [];
 
-    public function get(string $uri, callable $action): void{
-        $this->routes['GET'][$uri] = $action;
+    public function get(string $uri, callable $action, $middleware = null): void{
+        $this->routes['GET'][$uri] = ['action' => $action, 'middleware' => $middleware];
         //   'GET' => [
         // '/restaurants' => function() { return "List of restaurants"; },
         // '/users' => function() { return "List of users"; },
@@ -24,13 +25,14 @@ class Router{
         //if full http://localhost/store?item=1
         //it returns /store part
 
-        $action = $this->routes[$method][$uri] ?? null;
+        $route = $this->routes[$method][$uri] ?? null;
         //Method = "get, post, ......"
-        if(!$action){
+        if(!$route){
            throw new NotFoundException("No existing URI found");
             return;
         }
+        $middleware = isset($route['middleware']);
 
-        call_user_func($action);
+        call_user_func($route['action']);
     }
 }

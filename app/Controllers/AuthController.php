@@ -41,4 +41,24 @@ class AuthController{
             echo "Registration failed";
         }
     }
+
+    public function login(){
+        $email = $_POST['email'] ?? '';
+        $password = $_POST['password'] ?? '';
+
+        $user = $this->userModel->findByEmail($email);
+        if(!$user || !password_verify($password, $user['password'])){
+            http_response_code(401);
+            echo "Invalid credentials";
+            return;
+        }
+
+        $_SESSION['user_id'] = $user['id'];
+        echo "Login successfully";
+    }
+
+    public function logout(){
+        session_destroy();
+        echo "Logged out successfully";
+    }
 }
