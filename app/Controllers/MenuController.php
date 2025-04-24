@@ -7,6 +7,7 @@ use App\Traits\ValidationTrait;
 class MenuController{
     use ValidationTrait;
     public function index(){
+       	// session_start();
         throw new \Exception("Erorr shitt");
         echo"Welcome to menu";
     }

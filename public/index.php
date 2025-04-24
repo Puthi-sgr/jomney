@@ -1,4 +1,3 @@
-
 <?php
 require __DIR__.'/../vendor/autoload.php';
 
@@ -6,6 +5,7 @@ use App\Controllers\AuthController;
 use App\Controllers\MenuController;
 use App\Core\Router;
 use App\Core\ErrorHandler;
+use App\Middleware\AuthMiddleware;
 
 //.env
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__, '/../');
@@ -16,12 +16,12 @@ $dotenv->load();
 $router = new Router();
 // Display PHP configuration information
 
-// Define the routes
+// Define the route
 $router->get('/', function (){
         echo "This is a public's homepage";
     });
 
-$router->get('/menu', [new MenuController(), 'index']);
+$router->get('/menu', [new MenuController(), 'index'], [AuthMiddleware::class, 'check']);
 $router->get('/menu/create', [new MenuController(), 'create']);
 $router->post('/menu/store', [new MenuController(), 'store']);
 

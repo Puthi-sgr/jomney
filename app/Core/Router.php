@@ -33,6 +33,10 @@ class Router{
         }
         $middleware = isset($route['middleware']);
 
+        if($middleware){
+            call_user_func($route['middleware']);
+        }
+
         call_user_func($route['action']);
     }
 }
