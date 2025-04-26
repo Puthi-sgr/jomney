@@ -2,7 +2,9 @@
 
 namespace App\Controllers;
 
+use App\Core\JWTService;
 use App\Models\User;
+use App\Core\Response;
 
 class AuthController{
     private User $userModel;
@@ -10,7 +12,7 @@ class AuthController{
     public function __construct()
     {   
         $this->userModel = new User();
-        session_start();
+        JWTService::init(); //Make sure that the secret and TTl are loaded
     }
 
     public function register(){
@@ -18,15 +20,14 @@ class AuthController{
         $password = $_POST['password'] ?? '';
 
         if(!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 6){
-            http_response_code(422);
-            echo "Invalid email or password.";
+            Response::error("Invalid email or password",["Extra message" => "Dummy"], 422);
             return;
         }
 
         $isEmailExisted = $this->userModel->findByEmail($email);
         if($isEmailExisted){
-            http_response_code(409);
-            echo "Email is already registered";
+
+            Response::error("Email has already been taken", [], 409 );
             return;
         }
 
@@ -35,10 +36,9 @@ class AuthController{
         $result = $this->userModel->create($email, $hashedPassword);
 
         if($result){
-            echo "Account has been successfully created";
+           Response::success("Registration successful", ["email" => $email, "encrypted_password" => $hashedPassword], 201);
         }else{
-            http_response_code(404);
-            echo "Registration failed";
+            Response::error("Registration failed", [], 201);
         }
     }
 
@@ -46,19 +46,20 @@ class AuthController{
         $email = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
 
+        //Finds the user by email
         $user = $this->userModel->findByEmail($email);
         if(!$user || !password_verify($password, $user['password'])){
-            http_response_code(401);
-            echo "Invalid credentials";
+            Response::error("Invalid credentials", [], 401);
             return;
         }
 
-        $_SESSION['user_id'] = $user['id'];
-        echo "Login successfully";
+        //Generate token
+        $token = JWTService::generateToken($user['id']);
+        Response::success("Login successful", ["Token" => $token], 401);
     }
 
     public function logout(){
         session_destroy();
-        echo "Logged out successfully";
+        Response::success("Log successful", [], 200);
     }
 }

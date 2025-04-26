@@ -5,7 +5,9 @@ use App\Controllers\AuthController;
 use App\Controllers\MenuController;
 use App\Core\Router;
 use App\Core\ErrorHandler;
+use App\Core\JWTService;
 use App\Middleware\AuthMiddleware;
+use App\Middleware\JWTMiddleware;
 
 //.env
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__, '/../');
@@ -26,9 +28,9 @@ $router->get('/menu/create', [new MenuController(), 'create']);
 $router->post('/menu/store', [new MenuController(), 'store']);
 
 $authController = new AuthController;
-$router->post('/register', [$authController, 'register']);
+$router->post('/register',[$authController, 'register']);
 $router->post('/login', [$authController, 'login']);
-$router->get('/logout', [$authController, 'logout']);
+$router->get('/logout', [$authController, [JWTMiddleware::check()] , 'logout']);
 
 // Basic routing example
 $requestMethod = $_SERVER['REQUEST_METHOD'];

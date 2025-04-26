@@ -1,7 +1,7 @@
 <?php
 namespace App\Core;
 use App\Core\NotFoundException;
-use App\Middleware\AuthMiddleware;
+use App\Core\Response;
 
 class Router{
     protected array $routes = [];
@@ -28,7 +28,7 @@ class Router{
         $route = $this->routes[$method][$uri] ?? null;
         //Method = "get, post, ......"
         if(!$route){
-           throw new NotFoundException("No existing URI found");
+            throw new NotFoundException("No existing URI  found");     
             return;
         }
         $middleware = isset($route['middleware']);
