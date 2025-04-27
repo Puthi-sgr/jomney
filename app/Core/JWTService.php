@@ -17,6 +17,7 @@ class JWTService
     self::$ttl = (int) ($_ENV['JWT_TTL'] ?? 3600);
    }
 
+   //Typically happens in login
    public static function generateToken(int|string $userId): string{
         $now = time();
         $exp = $now + self::$ttl;

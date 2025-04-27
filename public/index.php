@@ -3,11 +3,13 @@ require __DIR__.'/../vendor/autoload.php';
 
 use App\Controllers\AuthController;
 use App\Controllers\MenuController;
+use App\Controllers\OrderController;
 use App\Core\Router;
 use App\Core\ErrorHandler;
 use App\Core\JWTService;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\JWTMiddleware;
+use App\Models\Order;
 
 //.env
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__, '/../');
@@ -32,6 +34,10 @@ $router->post('/register',[$authController, 'register']);
 $router->post('/login', [$authController, 'login']);
 $router->get('/logout', [$authController, [JWTMiddleware::check()] , 'logout']);
 
+$orderController = new OrderController;
+$router->get('/orders', [$orderController, 'index'], [JWTMiddleware::class, 'check']);
+
+$router->post('/orders', [$orderController, 'create'], [JWTMiddleware::class, 'check']);
 // Basic routing example
 $requestMethod = $_SERVER['REQUEST_METHOD'];
 //provide the uri requested by the client
