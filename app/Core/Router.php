@@ -15,8 +15,8 @@ class Router{
         //]
     }
 
-    public function post(string $uri, callable $action):void{
-        $this->routes['POST'][$uri] = $action; 
+    public function post(string $uri, callable $action, $middleware = null):void{
+        $this->routes['POST'][$uri] = ['action' => $action, 'middleware' => $middleware]; 
     }
 
     //Get the client to the designated action 
@@ -31,7 +31,8 @@ class Router{
             throw new NotFoundException("No existing URI  found");     
             return;
         }
-        $middleware = isset($route['middleware']);
+       
+        $middleware = isset($route['middleware']) && $route['middleware'] !== null;
 
         if($middleware){
             call_user_func($route['middleware']);

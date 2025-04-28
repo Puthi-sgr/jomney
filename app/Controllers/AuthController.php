@@ -36,26 +36,26 @@ class AuthController{
         $result = $this->userModel->create($email, $hashedPassword);
 
         if($result){
-           Response::success("Registration successful", ["email" => $email, "encrypted_password" => $hashedPassword], 201);
+           Response::success("Registration successful", ["email" => $email, "encrypted_password" => $hashedPassword], 200);
         }else{
             Response::error("Registration failed", [], 201);
         }
     }
 
     public function login(){
-        $email = $_POST['email'] ?? '';
-        $password = $_POST['password'] ?? '';
+        $body = json_decode(file_get_contents('php://input'), true);
+        $email = $body['email'] ?? '';
+        $password = $body['password'] ?? '';
 
         //Finds the user by email
         $user = $this->userModel->findByEmail($email);
         if(!$user || !password_verify($password, $user['password'])){
             Response::error("Invalid credentials", [], 401);
-            return;
         }
 
         //Generate token
         $token = JWTService::generateToken($user['id']);
-        Response::success("Login successful", ["Token" => $token], 401);
+        Response::success("Login successful", ["token" => $token], 200);
     }
 
     public function logout(){

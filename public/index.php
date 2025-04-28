@@ -29,12 +29,14 @@ $router->get('/menu', [new MenuController(), 'index'], [AuthMiddleware::class, '
 $router->get('/menu/create', [new MenuController(), 'create']);
 $router->post('/menu/store', [new MenuController(), 'store']);
 
-$authController = new AuthController;
-$router->post('/register',[$authController, 'register']);
-$router->post('/login', [$authController, 'login']);
-$router->get('/logout', [$authController, [JWTMiddleware::check()] , 'logout']);
+$authController = new AuthController();
+$router->post('/register',[$authController, 'register'], [JWTMiddleware::check()] );
 
-$orderController = new OrderController;
+$router->post('/loginJWT', [$authController, 'login']);
+
+$router->get('/logout', [$authController, 'logout'], [JWTMiddleware::check()] );
+
+$orderController = new OrderController();
 $router->get('/orders', [$orderController, 'index'], [JWTMiddleware::class, 'check']);
 
 $router->post('/orders', [$orderController, 'create'], [JWTMiddleware::class, 'check']);
