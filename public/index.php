@@ -30,11 +30,11 @@ $router->get('/menu/create', [new MenuController(), 'create']);
 $router->post('/menu/store', [new MenuController(), 'store']);
 
 $authController = new AuthController();
-$router->post('/register',[$authController, 'register'], [JWTMiddleware::check()] );
+// $router->post('/register',[$authController, 'register'], [JWTMiddleware::check()] );
 
-$router->post('/loginJWT', [$authController, 'login']);
+$router->post('/loginJWT', [$authController, 'login'], null);
 
-$router->get('/logout', [$authController, 'logout'], [JWTMiddleware::check()] );
+$router->get('/logout', [$authController, 'logout'], [JWTMiddleware::class, 'check'] );
 
 $orderController = new OrderController();
 $router->get('/orders', [$orderController, 'index'], [JWTMiddleware::class, 'check']);

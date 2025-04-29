@@ -15,6 +15,14 @@ class AuthController{
         JWTService::init(); //Make sure that the secret and TTl are loaded
     }
 
+    private function debugLog($password, $user):void{
+        $newHash = password_hash('secret', PASSWORD_DEFAULT);
+        file_put_contents('debug.log', "New hash: $newHash\n", FILE_APPEND);
+        file_put_contents('debug.log', "Password from request: $password\n", FILE_APPEND);
+        file_put_contents('debug.log', "Hash from DB: {$user['password']}\n", FILE_APPEND);
+        file_put_contents('debug.log', "Verification result: " . (password_verify($password, $user['password']) ? 'true' : 'false') . "\n", FILE_APPEND);
+    }
+
     public function register(){
         $email = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
@@ -49,6 +57,9 @@ class AuthController{
 
         //Finds the user by email
         $user = $this->userModel->findByEmail($email);
+       
+        $this->debugLog($password, $user);
+
         if(!$user || !password_verify($password, $user['password'])){
             Response::error("Invalid credentials", [], 401);
         }

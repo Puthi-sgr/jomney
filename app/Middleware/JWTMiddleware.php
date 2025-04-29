@@ -13,7 +13,7 @@ class JWTMiddleware{
         $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
 
          if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-            Response::error('Token not provided',[], 401);
+            Response::error('Token not provided',[], 400);
         }
 
         $token = $matches[1];
