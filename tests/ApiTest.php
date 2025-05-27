@@ -47,11 +47,20 @@ class ApiTest extends TestCase
 
         $response = curl_exec($ch);
         $code     = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        $error = curl_error($ch);
+        file_put_contents('test_debug.log', "URL: $url\n", FILE_APPEND);
+        file_put_contents('test_debug.log', "Response Code: $code\n", FILE_APPEND);
+        file_put_contents('test_debug.log', "Raw Response: $response\n", FILE_APPEND);
+        file_put_contents('test_debug.log', "cURL Error: $error\n", FILE_APPEND);
+    
         curl_close($ch);
+        $decoded = json_decode($response, true);
+        file_put_contents('test_debug.log', "Decoded: " . print_r($decoded, true) . "\n", FILE_APPEND);
 
         return [
             'code' => $code,
-            'body' => json_decode($response, true),
+            'body' => $decoded
         ];
     }
 
@@ -72,13 +81,13 @@ class ApiTest extends TestCase
 
         // Save the token for subsequent calls
         $this->token = $login['body']['data']['token'];
-
+        file_put_contents('test_debug.log', "Token: " . ($this->token ?? 'NOT SET') . "\n", FILE_APPEND);
         // 2) ACCESS /orders WITHOUT token → should be 401
         $unauth = $this->request('GET', '/orders');
         $this->assertEquals(401, $unauth['code'], 'Unauthenticated should get 401');
 
         // 3) ACCESS /orders WITH token → should be 200
-        $auth    = $this->request('GET', '/orders', [], [
+        $auth  = $this->request('GET', '/orders', [], [
             'Authorization: Bearer ' . $this->token
         ]);
         $this->assertEquals(200, $auth['code'], 'Authenticated GET /orders returns 200');

@@ -1,1 +1,1 @@
-{"version":1,"defects":{"Tests\\ApiTest::testFullJwtProtectedWorkflow":4},"times":{"Tests\\ApiTest::testFullJwtProtectedWorkflow":0.836}}
+{"version":1,"defects":{"Tests\\ApiTest::testFullJwtProtectedWorkflow":3},"times":{"Tests\\ApiTest::testFullJwtProtectedWorkflow":1.059}}

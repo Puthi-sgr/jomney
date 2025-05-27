@@ -15,17 +15,13 @@ class AuthController{
         JWTService::init(); //Make sure that the secret and TTl are loaded
     }
 
-    private function debugLog($password, $user):void{
-        $newHash = password_hash('secret', PASSWORD_DEFAULT);
-        file_put_contents('debug.log', "New hash: $newHash\n", FILE_APPEND);
-        file_put_contents('debug.log', "Password from request: $password\n", FILE_APPEND);
-        file_put_contents('debug.log', "Hash from DB: {$user['password']}\n", FILE_APPEND);
-        file_put_contents('debug.log', "Verification result: " . (password_verify($password, $user['password']) ? 'true' : 'false') . "\n", FILE_APPEND);
-    }
+    
 
     public function register(){
-        $email = $_POST['email'] ?? '';
-        $password = $_POST['password'] ?? '';
+        $data = json_decode(file_get_contents('php://input'), true);
+
+        $email = $data['email'] ?? '';
+        $password = $data['password'] ?? '';
 
         if(!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 6){
             Response::error("Invalid email or password",["Extra message" => "Dummy"], 422);
@@ -51,21 +47,31 @@ class AuthController{
     }
 
     public function login(){
-        $body = json_decode(file_get_contents('php://input'), true);
+          $rawInput = file_get_contents('php://input');
+ 
+        
+        $body = json_decode($rawInput, true);
         $email = $body['email'] ?? '';
         $password = $body['password'] ?? '';
 
+
         //Finds the user by email
         $user = $this->userModel->findByEmail($email);
-       
-        $this->debugLog($password, $user);
 
         if(!$user || !password_verify($password, $user['password'])){
-            Response::error("Invalid credentials", [], 401);
+            Response::error("Invalid credentials", ["email" => $email, "password" => $password], 401);
         }
 
         //Generate token
         $token = JWTService::generateToken($user['id']);
+
+        // Before sending the response
+        file_put_contents('debug.log', "Response data: " . json_encode([
+            'success' => true,
+            'message' => "Login successful",
+            'data' => ["token" => $token]
+        ]) . "\n", FILE_APPEND);
+
         Response::success("Login successful", ["token" => $token], 200);
     }
 

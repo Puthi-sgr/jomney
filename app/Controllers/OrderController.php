@@ -19,10 +19,14 @@ class OrderController{
         //Fetch orders from model;
         $orders = $this->orderModel->getByUser($userId);
 
-        Response::success("Orders retrieved", $orders);
+        Response::success("Orders retrieved", $orders, 200);
     }
 
     public function create(): void{
+
+        //Decode the user payload and store it in object
+
+        //Wrong -> grab the user ID from the payload object
         $userId = (int) ($_SERVER['user_id'] ?? 0);
 
         //Read raw JSON

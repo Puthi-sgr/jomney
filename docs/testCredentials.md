@@ -1,0 +1,1 @@
+C:\Windows\System32\curl.exe -X POST http://localhost:8080/loginJWT -H "Content-Type: application/json" -d "{\"email\":\"user@example.com\",\"password\":\"$2y$10$6HG9n2BumzMtTwp4enZmWeZAw2yR2zOWxhtEcg.v.WrUbP7dlIsbC\"}"

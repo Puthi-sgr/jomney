@@ -3,7 +3,6 @@
 namespace App\Core;
 
 use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
 use Exception;
 
 class JWTService
@@ -17,28 +16,32 @@ class JWTService
     self::$ttl = (int) ($_ENV['JWT_TTL'] ?? 3600);
    }
 
-   //Typically happens in login
    public static function generateToken(int|string $userId): string{
         $now = time();
         $exp = $now + self::$ttl;
 
         $payload = [ 
-            "iss" => $_ENV["APP_URL" ?? 'http://localhost'],
+            "iss" => $_ENV["APP_URL"] ?? 'http://localhost',
             "iat" => $now,
             "exp" => $exp,
             "sub" => $userId
         ]; 
 
-        $encoded = JWT::encode($payload, self::$secret, self:: $algo );
-        return  $encoded;
+        return JWT::encode($payload, self::$secret, self::$algo);
     }
 
-    public static function validateToken(string $token):object{
-        $decode = JWT::decode($token, new Key(self::$secret, self::$algo));
-        
-        return $decode;
+    public static function validateToken(string $token): object{
+        try {
+            // Use v5 compatibility syntax that works with your setup
+            $decoded = JWT::decode($token, self::$secret, [self::$algo]);
+            
+            return $decoded;
+            
+        } catch (Exception $e) {
+            error_log("JWT validation error: " . $e->getMessage());
+            throw new Exception("Invalid token: " . $e->getMessage());
+        }
     }
 }
 
 JWTService::init();
-
