@@ -12,28 +12,21 @@ class Payment{
         $this->db = (new Database()) -> getConnection();
     }
 
-    public function create(int $orderId,  string $stripePaymentId, float $amount, string $currency, string $status):bool{
-        $sql = "
-         INSERT INTO payments 
-          (order_id, stripe_payment_id, amount, currency, status) 
-          VALUES 
-          (:order_id, 
-          :stripe_id, 
-          :amount, 
-          :currency, 
-          :status)";
-
+   public function create(array $data): bool
+    {
+        $sql = "INSERT INTO payment
+                (order_id, payment_method_id, stripe_payment_id, amount, currency, status)
+                VALUES
+                (:order_id, :payment_method_id, :stripe_payment_id, :amount, :currency, :status)";
         $stmt = $this->db->prepare($sql);
-
-        $result = $stmt->execute([
-            'order_id' => $orderId,
-            'stripe_id' => $stripePaymentId,
-            'amount' => $amount,
-            'currency' => $currency,
-            'status' => $status
+        return $stmt->execute([
+            'order_id'           => $data['order_id'],
+            'payment_method_id'  => $data['payment_method_id'],
+            'stripe_payment_id'  => $data['stripe_payment_id'],
+            'amount'             => $data['amount'],
+            'currency'           => $data['currency'],
+            'status'             => $data['status'],
         ]);
-
-        return $result;
     }
 
     public function updateStatus(string $stripePaymentId, string $newStatus):bool{

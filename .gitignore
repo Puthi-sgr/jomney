@@ -3,3 +3,6 @@
 #env
 .env
 apache.conf
+
+#Keep migration track
+!Sql
