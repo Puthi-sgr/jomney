@@ -8,6 +8,7 @@ class Response{
         header('Content-Type: application/json');
         echo json_encode($data, JSON_PRETTY_PRINT);
         exit;
+        //ensure that the function is terminated across
     }
 
     public static function success(string $message, array $data = [], int $status = 200):void{

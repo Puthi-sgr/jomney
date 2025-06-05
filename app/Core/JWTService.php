@@ -16,16 +16,20 @@ class JWTService
     self::$ttl = (int) ($_ENV['JWT_TTL'] ?? 3600);
    }
 
-   public static function generateToken(int|string $userId): string{
+   public static function generateToken(int|string $userId, $role = null): string{
         $now = time();
         $exp = $now + self::$ttl;
 
+     
         $payload = [ 
             "iss" => $_ENV["APP_URL"] ?? 'http://localhost',
             "iat" => $now,
             "exp" => $exp,
             "sub" => $userId
         ]; 
+        
+        //encode the admin role
+        if($role) $payload['role'] = $role;
 
         return JWT::encode($payload, self::$secret, self::$algo);
     }

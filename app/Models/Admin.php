@@ -18,6 +18,12 @@ class Admin
         $stmt->execute(['id' => $id]);
         return $stmt->fetch() ?: null; //This is the part where we get the actual data
     }
+
+    public function findByEmail(string $email): ?array{
+        $stmt = $this->db->prepare("SELECT * FROM admin WHERE email = :email LIMIT 1");
+        $stmt->execute(['email' => $email]);
+        return $stmt->fetch() ?: null;
+    }
     public function create(array $data): bool
     {
         $sql = "INSERT INTO admin (email, password, name, is_super)

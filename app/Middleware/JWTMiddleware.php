@@ -25,8 +25,8 @@ class JWTMiddleware{
         $token = $matches[1];
 
         // Debug: Log the token we extracted
-    error_log("Extracted token: " . $token);
-    error_log("Token length: " . strlen($token));
+        error_log("Extracted token: " . $token);
+        error_log("Token length: " . strlen($token));
 
         try{
             //2. Validate the token
