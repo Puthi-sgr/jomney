@@ -14,6 +14,34 @@ class Food
         $this->db = (new Database())->getConnection();
     }
 
+    public function all($filters = []): array{
+        $sql = "SELECT * FROM food";
+        $params = [];
+        $conditions = [];
+
+        if (!empty($filters)) {
+
+            if (isset($filters['vendor_id'])) {
+                $conditions[] = "vendor_id = :vendor_id"; //For query
+                $params['vendor_id'] = $filters['vendor_id']; //For execution
+            }
+
+            if (isset($filters['category'])) {
+                $conditions[] = "category = :category";
+                $params['category'] = $filters['category'];
+            }
+
+            if (!empty($conditions)) {
+                $sql .= " WHERE " . implode(' AND ', $conditions);
+                //"WHERE vendor_id = :vendor_id AND category = ":category"
+            }
+        }
+      
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
     public function find(int $id): ?array
     {
         $stmt = $this->db->prepare("SELECT * FROM food WHERE id = :id");
@@ -48,5 +76,52 @@ class Food
             'rating'      => $data['rating'] ?? 0,
             'images'      => $data['images'] ?? [],    // TEXT[] array of URLs
         ]);
+    }
+
+    public function update(int $foodId, array $data): bool{
+        $sql = "UPDATE food SET
+                vendor_id = :vendor_id,
+                name = :name,
+                price = :price";
+        $params = [
+            'vendor_id'   => $data['vendor_id'],
+            'name'        => $data['name'],
+            'price'       => $data['price'],
+        ];
+        $conditions = [];
+
+        if(array_key_exists('description', $data)) {
+            $conditions[] = "description = :description";
+            $params['description'] = $data['description'];
+        }
+        if(array_key_exists('category', $data)) {
+            $conditions[] = "category = :category";
+            $params['category'] = $data['category'];
+        }
+        if(array_key_exists('ready_time', $data)) {
+            $conditions[] = "ready_time = :ready_time";
+            $params['ready_time'] = $data['ready_time'];
+        }
+        if(array_key_exists('rating', $data)){
+            $conditions[] = "rating = :rating";
+            $params['rating'] = $data['rating'];
+        }
+        if(array_key_exists('images', $data)) {
+            $conditions[] = "images = :images";
+            $params['images'] = $data['images'];
+        }
+        if(!empty($conditions)) {
+            $sql .= ", " . implode(', ', $conditions) . "WHERE id = :id";
+        }
+        $params['id'] = $foodId;
+
+
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute($params);
+    }
+
+    public function delete(int $foodId):bool{
+        $stmt = $this->db->prepare("DELETE FROM food WHERE id = :id");
+        return $stmt->execute(['id' => $foodId]);
     }
 }
