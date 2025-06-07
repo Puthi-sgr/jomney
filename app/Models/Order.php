@@ -76,8 +76,11 @@ class Order{
     //Get all orders from a particular user
 
     public function updateStatus(int $orderId, int $statusId): bool{
+
         $sql = "UPDATE orders SET status_id = :status_id WHERE id = :id";
+
         $stmt = $this->db->prepare($sql);
+        
         return $stmt->execute([
             'id' => $orderId,
             'status_id' => $statusId

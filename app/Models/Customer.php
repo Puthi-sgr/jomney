@@ -13,6 +13,12 @@ class Customer{
           $this->db = (new Database())->getConnection();
     }
 
+    public function all():array{
+        $sql = "SELECT * FROM customer";
+        $stmt = $this->db->query($sql);
+
+        return $stmt->fetchAll();
+    }
     public function find(int $id): ?array
     {
         //1. Prepare the statement with parameters
@@ -77,5 +83,11 @@ class Customer{
         $sql = "UPDATE customer SET " . implode(', ', $fields) . " WHERE id = :id";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute($params);
+    }
+
+    public function delete(int $customerId):bool{
+        $sql = "DELETE FROM customer WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute(['id' => $customerId]);
     }
 }
