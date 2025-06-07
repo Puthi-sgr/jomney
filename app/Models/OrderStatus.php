@@ -23,4 +23,32 @@ class OrderStatus
         $stmt->execute(['key' => $key]);
         return $stmt->fetch() ?: null;
     }
+
+    public function create(string $key, string $label): bool{
+        $sql = "INSERT INTO order_statuses (key, label) VALUES (:key, :label)";
+
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            'key' => $key,
+            'label' => $label
+        ]);
+    }
+
+    public function update(string $key): bool{
+        $sql = "UPDATE order_statuses SET label = :label WHERE key = :key";
+
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            'key' => $key,
+        ]);
+    }
+
+    public function delete(string $key):bool {
+        $sql = "DELETE FROM order_statuses WHERE key = :key";
+
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            'key' => $key,
+        ]);
+    }
 }

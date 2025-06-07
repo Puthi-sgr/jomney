@@ -12,6 +12,18 @@ class Payment{
         $this->db = (new Database()) -> getConnection();
     }
 
+    public function all():array{
+        $sql = "SELECT * FROM payment";
+        $stmt = $this->db->query($sql);
+        return $stmt->fetchAll();
+    }
+
+    public function find(int $id): ?array {
+         $stmt = $this->db->prepare("SELECT * FROM payment WHERE id = :id");
+        $stmt->execute(['id' => $id]);
+        return $stmt->fetch() ?: null;
+    }
+
    public function create(array $data): bool
     {
         $sql = "INSERT INTO payment
