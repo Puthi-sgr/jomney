@@ -19,6 +19,19 @@ class Router{
         $this->routes['POST'][$uri] = ['action' => $action, 'middleware' => $middleware]; 
     }
 
+    public function put(string $uri, callable $action, $middleware = null):void{
+        $this->routes['PUT'][$uri] = ['action' => $action, 'middleware' => $middleware]; 
+    }
+
+    public function delete(string $uri, callable $action, $middleware = null):void{
+        $this->routes['DELETE'][$uri] = ['action' => $action, 'middleware' => $middleware]; 
+    }
+
+    public function patch(string $uri, callable $action, $middleware = null):void{
+        $this->routes['PATCH'][$uri] = ['action' => $action, 'middleware' => $middleware]; 
+    }
+
+
     //Get the client to the designated action 
     public function dispatch(string $method, string $uri){
         $uri = parse_url($uri, PHP_URL_PATH);

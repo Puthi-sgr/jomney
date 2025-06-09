@@ -9,9 +9,20 @@ use App\Core\Router;
 use App\Core\ErrorHandler;
 use App\Core\JWTService;
 use App\Middleware\AuthMiddleware;
+use App\Middleware\AdminMiddleware;
 use App\Middleware\JWTMiddleware;
 use App\Models\Order;
 use Firebase\JWT\JWT;
+
+// Admin Controllers
+use App\Controllers\Admin\AdminAuthController;
+use App\Controllers\Admin\AdminStatsController;
+use App\Controllers\Admin\AdminVendorController;
+use App\Controllers\Admin\AdminFoodController;
+use App\Controllers\Admin\AdminOrderController;
+use App\Controllers\Admin\AdminCustomerController;
+use App\Controllers\Admin\AdminPaymentController;
+use App\Controllers\Admin\AdminSettingsController;
 
 //.env
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__, '/../');
@@ -32,7 +43,57 @@ $router->get('/menu/create', [new MenuController(), 'create']);
 $router->post('/menu/store', [new MenuController(), 'store']);
 
 $authController = new AuthController();
-// $router->post('/register',[$authController, 'register'], [JWTMiddleware::check()] );
+
+// ─────── Admin Auth ───────
+$adminAuth = new AdminAuthController();
+$router->post('/api/admin/login',  [$adminAuth, 'login']);
+$router->post('/api/admin/logout', [$adminAuth, 'logout'], null);
+$router->get('/api/admin/user',    [$adminAuth, 'user'], [AdminMiddleware::class, 'check']);
+
+// ─────── Dashboard Overview ───────
+$statsCtrl = new AdminStatsController();
+$router->get('/api/admin/stats', [$statsCtrl, 'index'], [AdminMiddleware::class, 'check']);
+
+// ─────── Vendor CRUD ───────
+$vendorCtrl = new AdminVendorController();
+$router->get('/api/admin/vendors', [$vendorCtrl, 'index'], [AdminMiddleware::class, 'check']);
+$router->post('/api/admin/vendors', [$vendorCtrl, 'store'], [AdminMiddleware::class, 'check']);
+$router->get('/api/admin/vendors/{id}', [$vendorCtrl, 'show'], [AdminMiddleware::class, 'check']);
+$router->put('/api/admin/vendors/{id}', [$vendorCtrl, 'update'], [AdminMiddleware::class, 'check']);
+$router->delete('/api/admin/vendors/{id}/delete', [$vendorCtrl, 'delete'], [AdminMiddleware::class, 'check']);
+
+// ─────── Food CRUD ───────
+$foodCtrl = new AdminFoodController();
+$router->get('/api/admin/foods', [$foodCtrl, 'index'], [AdminMiddleware::class, 'check']);
+$router->post('/api/admin/foods', [$foodCtrl, 'store'], [AdminMiddleware::class, 'check']);
+$router->get('/api/admin/foods/{id}', [$foodCtrl, 'show'], [AdminMiddleware::class, 'check']);
+$router->put('/api/admin/foods/{id}', [$foodCtrl, 'update'], [AdminMiddleware::class, 'check']); 
+$router->delete('/api/admin/foods/{id}', [$foodCtrl, 'delete'], [AdminMiddleware::class, 'check']);
+
+// ─────── Order Management ───────
+$orderCtrl = new AdminOrderController();
+$router->get('/api/admin/orders', [$orderCtrl, 'index'], [AdminMiddleware::class, 'check']);
+$router->get('/api/admin/orders/{id}', [$orderCtrl, 'show'], [AdminMiddleware::class, 'check']);
+$router->patch('/api/admin/orders/{id}/status', [$orderCtrl, 'updateStatus'], [AdminMiddleware::class, 'check']);
+
+// ─────── Customer Management ───────
+$customerCtrl = new AdminCustomerController();
+$router->get('/api/admin/customers', [$customerCtrl, 'index'], [AdminMiddleware::class, 'check']);
+$router->get('/api/admin/customers/{id}', [$customerCtrl, 'show'], [AdminMiddleware::class, 'check']);
+$router->delete('/api/admin/customers/{id}', [$customerCtrl, 'delete'], [AdminMiddleware::class, 'check']);
+
+// ─────── Payment Management ───────
+$paymentCtrl = new AdminPaymentController();
+$router->get('/api/admin/payments', [$paymentCtrl, 'index'], [AdminMiddleware::class, 'check']);
+$router->get('/api/admin/payments/{id}', [$paymentCtrl, 'show'], [AdminMiddleware::class, 'check']);
+
+// ─────── Settings (Order Statuses) ───────
+$settingsCtrl = new AdminSettingsController();
+$router->get('/api/admin/order-statuses', [$settingsCtrl, 'allStatuses'], [AdminMiddleware::class, 'check']);
+$router->post('/api/admin/order-statuses', [$settingsCtrl, 'createStatus'], [AdminMiddleware::class, 'check']);
+$router->get('/api/admin/order-statuses/{key}', [$settingsCtrl, 'getStatus'], [AdminMiddleware::class, 'check']);
+$router->put('/api/admin/order-statuses/{key}', [$settingsCtrl, 'updateStatus'], [AdminMiddleware::class, 'check']);
+$router->delete('/api/admin/order-statuses/{key}', [$settingsCtrl, 'deleteStatus'], [AdminMiddleware::class, 'check']);
 
 /* ------------------AUTHs---------------------------------- */
 $router->post('/register', [$authController, 'register'], null);
@@ -55,36 +116,7 @@ $paymentController = new PaymentController();
 //must be logged in to create payment
 $router->post("/payments/create", [$paymentController, 'create'], [JWTMiddleware::class, 'check']);
 
-$router->get('/test-jwt', function() {
-    echo "=== JWT Debug Test v6 Format ===\n\n";
-    
-    $token = JWTService::generateToken(123);
-    echo "Generated token: " . $token . "\n\n";
-    
-    try {
-        // v6 alternative syntax - array of keys
-        $keys = [
-            'HS256' => new \Firebase\JWT\Key($_ENV['JWT_SECRET'], 'HS256')
-        ];
-        
-        $decoded = \Firebase\JWT\JWT::decode($token, $keys);
-        echo "Decode successful with array format!\n";
-        echo "Decoded payload: " . json_encode($decoded) . "\n";
-        
-    } catch (Exception $e) {
-        echo "Array format failed: " . $e->getMessage() . "\n";
-        
-        // Try the old v5 syntax as fallback
-        try {
-            echo "Trying v5 compatibility mode...\n";
-            $decoded = \Firebase\JWT\JWT::decode($token, $_ENV['JWT_SECRET'], ['HS256']);
-            echo "v5 syntax worked!\n";
-            echo "Decoded payload: " . json_encode($decoded) . "\n";
-        } catch (Exception $e2) {
-            echo "v5 syntax also failed: " . $e2->getMessage() . "\n";
-        }
-    }
-});
+
 //Webhook endpoint (Public, no auth)
 $router->post('/payments/webhook', [$paymentController, 'webhook']);
 

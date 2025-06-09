@@ -25,7 +25,7 @@ class Vendor
         return $stmt->fetch() ?: null;
     }
 
-    public function create(array $data): bool
+    public function create(array $data): int|false
     {
         $sql = "INSERT INTO vendor
                 (email, password, name, phone, address, food_types, rating, photo_url)
@@ -33,7 +33,7 @@ class Vendor
                 (:email, :password, :name, :phone, :address, :food_types, :rating, :photo_url)";
         $stmt = $this->db->prepare($sql);
 
-        return $stmt->execute([
+        $result =  $stmt->execute([
             'email'       => $data['email'],            
             'password'    => password_hash($data['password'], PASSWORD_DEFAULT),
             'name'        => $data['name'],
@@ -43,6 +43,11 @@ class Vendor
             'rating'      => $data['rating'] ?? 0,
             'photo_url'   => $data['photo_url'] ?? null,
         ]);
+
+        return $result ? (int)$this->db->lastInsertId() : false;
+            //Returning id specifically to update photos within the store controller
+
+        //Asking what id did it just inserted into the database
     }
 
     public function update(int $id, array $data): bool{

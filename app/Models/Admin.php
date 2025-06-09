@@ -22,6 +22,7 @@ class Admin
     public function findByEmail(string $email): ?array{
         $stmt = $this->db->prepare("SELECT * FROM admin WHERE email = :email LIMIT 1");
         $stmt->execute(['email' => $email]);
+   
         return $stmt->fetch() ?: null;
     }
     public function create(array $data): bool

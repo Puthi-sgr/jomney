@@ -47,7 +47,7 @@ class AuthController{
     }
 
     public function login(){
-          $rawInput = file_get_contents('php://input');
+        $rawInput = file_get_contents('php://input');
  
         
         $body = json_decode($rawInput, true);
