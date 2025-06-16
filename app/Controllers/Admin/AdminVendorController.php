@@ -45,20 +45,36 @@ class AdminVendorController{
     /**
          * POST /api/admin/vendors
          * Create a new vendor.
-         * Body (multipart/form-data or JSON with a photo_url):
+         * Body (multipart/form-data or JSON with a image):
          *   { 
          * "email": "...", 
          * "password":"...", 
          * "name":"...", ... 
-         * "food_types":["thai","burgers"], "photo_url":"https://..." }
+         * "food_types":["thai","burgers"], "image":"https://..." }
      */
     public function store():void {
-        //1) Parse the JSON body
-        $body = json_decode(file_get_contents('php://input'), true);
+        
+        // Check if it's a file upload (form-data) or JSON
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
 
+        
+        if (strpos($contentType, 'multipart/form-data') !== false) {
+            // Handle form-data (with file upload)
+            $body = $_POST;
+              
+        } else {
+              $body = json_decode(file_get_contents('php://input'), true);
+              
+               
+            // Check if JSON parsing failed
+            // if ($body === null && json_last_error() !== JSON_ERROR_NONE) {
+            //     Response::error('Invalid JSON format: ' . json_last_error_msg(), [], 400);
+            //     return;
+            // }
+        }
         // 2) Validate required fields
-        if (!filter_var($body['email'] ?? '', FILTER_VALIDATE_EMAIL)) {
-            Response::error('Valid email required', [], 422);
+        if (empty($body['email']) || !filter_var($body['email'], FILTER_VALIDATE_EMAIL)) {
+            Response::error('Valid email required', [$contentType], 422);
             return;
         }
         if (strlen($body['password'] ?? '') < 6) {
@@ -88,18 +104,20 @@ class AdminVendorController{
         $vendorId = $this->vendorModel->create($data);
 
         //check if the key photo is not null and there are no errors
-        if (isset($_FILES['photo']) && $_FILES['photo']['error'] === 0){
-
-            //1. Upload the photo to cloudinary
-             $photoUrl = $this->cloudinaryService->uploadImage(
-                $_FILES['photo']['tmp_name'], 
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === 0){
+            error_log("Image file found: " . $_FILES['image']['name']);
+            error_log("Image tmp_name: " . $_FILES['image']['tmp_name']);
+            
+            $photoUrl = $this->cloudinaryService->uploadImage(
+                $_FILES['image']['tmp_name'],  // Fixed
                 "foodDelivery/vendors/vendor-{$vendorId}"
-                //Path of the folders
             );
-
-            //2. Update the vendor with the path of cloudinary file
+            
+            error_log("Cloudinary URL: " . ($photoUrl ?: 'FAILED'));
+            
             if($photoUrl){
-                $this->vendorModel->update($vendorId, ['photo_url' => $photoUrl]);
+                $result = $this->vendorModel->imageUpdate($vendorId, ['image' => $photoUrl]);
+                error_log("DB update result: " . ($result ? 'SUCCESS' : 'FAILED'));
             }
         }
         
@@ -113,9 +131,56 @@ class AdminVendorController{
         return;
     }
 
+    
+    /**
+     * PUT /api/admin/vendors/image/{id}
+     * Update an existing vendor's details.
+    */
+    public function updateVendorImage(int $vendorId):void{
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        
+        if (strpos($contentType, 'multipart/form-data') !== false) {
+            $body = $_POST;
+        } else {
+            Response::error('Only accept form data', [], 400);
+            return;
+        }
+        
+        // Check if vendor exists
+        $vendor = $this->vendorModel->find($vendorId);
+        if (!$vendor) {
+            Response::error('Vendor not found', [], 404);
+            return;
+        }
+        
+        // Check for image file
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
+            //1. Upload the photo to cloudinary
+             $photoUrl = $this->cloudinaryService->uploadImage(
+                $_FILES['image']['tmp_name'], 
+                "foodDelivery/vendors/vendor-{$vendorId}"
+                //Path of the folders
+            );
+
+            //2. Update the vendor with the path of cloudinary file
+            if($photoUrl){
+                $result = $this->vendorModel->imageUpdate($vendorId, ['image' => $photoUrl]);
+            }
+        } else {
+            Response::error("No valid image file provided", [], 400);
+            return;
+        }
+
+        if(!$result){
+            Response::error("Image upload failed", ["result" => $result], 400);
+        }
+
+        Response::success("Image upload success", [], 200);
+
+    }
     /**
      * PUT /api/admin/vendors/{id}
-     * Update an existing vendor’s details.
+     * Update an existing vendor's details.
     */
     public function update(int $id): void
     {  
@@ -148,8 +213,8 @@ class AdminVendorController{
         if (isset($body['rating'])) {
             $updateData['rating'] = (float) $body['rating'];
         }
-        if (isset($body['photo_url'])) {
-            $updateData['photo_url'] = $body['photo_url'];
+        if (isset($body['image'])) {
+            $updateData['image'] = $body['image'];
         }
 
          // If password is being updated

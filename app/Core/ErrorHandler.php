@@ -11,7 +11,7 @@ class ErrorHandler {
         if($_ENV['APP_ENV'] === "development"){
 
             Response::error($e->getMessage(), 
-            ["line"=> $e->getLine(), 'file' => $e->getFile(), 'code' => $e->getCode(), 'stackTrace' => $e->getTrace()], $e->getCode());
+            ["line"=> $e->getLine(), 'file' => $e->getFile(), 'code' => $e->getCode(), 'stackTrace' => $e->getTrace()], 500);
         }else{ 
             //for the user to see;
             echo "Something went wrong, please try again later";

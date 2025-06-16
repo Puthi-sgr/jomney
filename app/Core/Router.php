@@ -40,17 +40,41 @@ class Router{
 
         $route = $this->routes[$method][$uri] ?? null;
         //Method = "get, post, ......"
-        if(!$route){
-            throw new NotFoundException("No existing URI  found");     
+        if($route){
+
+             $middleware = isset($route['middleware']) && $route['middleware'] !== null;
+
+            if($middleware){
+                call_user_func($route['middleware']);
+            }
+
+            call_user_func($route['action']);
+
             return;
         }
-       
-        $middleware = isset($route['middleware']) && $route['middleware'] !== null;
 
-        if($middleware){
-            call_user_func($route['middleware']);
+        // Check for dynamic routes
+        foreach ($this->routes[$method] ?? [] as $pattern => $route) {
+            // Convert {id} to regex pattern
+            $regex = preg_replace('/\{([^}]+)\}/', '(\d+)', $pattern);
+            $regex = '#^' . $regex . '$#';
+            
+            if (preg_match($regex, $uri, $matches)) {
+                // Extract parameters
+                array_shift($matches); // Remove full match
+                $params = $matches;
+                
+                // Call middleware
+                if (isset($route['middleware']) && $route['middleware'] !== null) {
+                    call_user_func($route['middleware']);
+                }
+                
+                // Call action with parameters
+                call_user_func_array($route['action'], $params);
+                return;
+            }
         }
-
-        call_user_func($route['action']);
+        // No route found
+            throw new NotFoundException("No existing URI found");
     }
 }

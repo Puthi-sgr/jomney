@@ -28,9 +28,9 @@ class Vendor
     public function create(array $data): int|false
     {
         $sql = "INSERT INTO vendor
-                (email, password, name, phone, address, food_types, rating, photo_url)
+                (email, password, name, phone, address, food_types, rating, image)
                 VALUES
-                (:email, :password, :name, :phone, :address, :food_types, :rating, :photo_url)";
+                (:email, :password, :name, :phone, :address, :food_types, :rating, :image)";
         $stmt = $this->db->prepare($sql);
 
         $result =  $stmt->execute([
@@ -41,13 +41,27 @@ class Vendor
             'address'     => $data['address'] ?? null,
             'food_types'  => $data['food_types'] ?? [],   // stored as TEXT[]
             'rating'      => $data['rating'] ?? 0,
-            'photo_url'   => $data['photo_url'] ?? null,
+            'image'   => $data['image'] ?? null,
         ]);
 
         return $result ? (int)$this->db->lastInsertId() : false;
             //Returning id specifically to update photos within the store controller
 
         //Asking what id did it just inserted into the database
+    }
+
+    public function imageUpdate(int $vendorId, array $data){
+        $sql = "UPDATE vendor
+            SET
+                image = :image
+            WHERE id = :id;
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            'id'      => $vendorId,
+            'image'   => $data['image'],
+        ]);
     }
 
     public function update(int $id, array $data): bool{
@@ -58,7 +72,7 @@ class Vendor
                 phone = :phone,
                 food_types = :food_types,
                 rating = :rating,
-                photo_url = :photo_url
+                image = :image
             WHERE id = :id;  
         ";
 
@@ -70,7 +84,7 @@ class Vendor
             'phone'       => $data['phone'],
             'food_types'  => $data['food_types'],
             'rating'      => $data['rating'],
-            'photo_url'   => $data['photo_url'],
+            'image'   => $data['image'],
         ]);
     }
 
