@@ -29,6 +29,16 @@ class Customer{
         return $stmt->fetch() ?: null;
     }
 
+    public function findByEmail(string $email): ?array
+    {
+        //1. Prepare the statement with parameters
+        //2. Execute the statement with parameters
+        //3. Fetch the result
+        $stmt = $this->db->prepare("SELECT * FROM customer WHERE email = :email");
+        $stmt->execute(['email' => $email]);
+        return $stmt->fetch() ?: null;
+    }
+
     /**
      * Creates a new customer record in the database
      * 
@@ -60,6 +70,16 @@ class Customer{
                 'location'  => $data['location'] ?? null,
                 'lat_lng'   => $data['lat_lng'] ?? null,
             ]);
+    }
+
+    public function imageUpdate(int $customerId, array $data): bool
+    {
+        $sql = "UPDATE customer SET image = :image, updated_at = NOW() WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            'id' => $customerId,
+            'image' => $data['image']
+        ]);
     }
 
     public function update(int $id, array $data):bool{

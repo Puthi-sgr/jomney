@@ -27,6 +27,15 @@ class Vendor
 
     public function create(array $data): int|false
     {
+        // Convert PHP array to PostgreSQL array format
+        if (isset($data['food_types']) && is_array($data['food_types'])) {
+            $data['food_types'] = '{' . implode(',', array_map(function($type) {
+                return '"' . str_replace('"', '\"', $type) . '"';
+            }, $data['food_types'])) . '}';
+        } else {
+            $data['food_types'] = '{}'; // Empty PostgreSQL array
+        }
+        
         $sql = "INSERT INTO vendor
                 (email, password, name, phone, address, food_types, rating, image)
                 VALUES

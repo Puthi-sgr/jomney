@@ -42,6 +42,29 @@ class AdminVendorController{
         Response::success('Vendor details', $vendor);
         return;
     }
+
+    public function foodTypeFormat($foodTypes){
+        // Fix: Change condition to check if NOT empty
+        if (!empty($foodTypes)) {
+            if (is_string($foodTypes)) {
+                // Method 1: JSON string
+                if (strpos($foodTypes, '[') === 0) {
+                    $categories = json_decode($foodTypes, true);
+                } else {
+                    // Method 2: Comma-separated
+                    $categories = explode(',', $foodTypes);
+                    $categories = array_map('trim', $categories); // Remove whitespace
+                }
+            } else {
+                // Method 3: Already an array
+                $categories = $foodTypes;
+            }
+            return $categories;
+        }
+        
+        // Return empty array if no food types provided
+        return [];
+    }
     /**
          * POST /api/admin/vendors
          * Create a new vendor.
@@ -52,6 +75,7 @@ class AdminVendorController{
          * "name":"...", ... 
          * "food_types":["thai","burgers"], "image":"https://..." }
      */
+
     public function store():void {
         
         // Check if it's a file upload (form-data) or JSON
@@ -86,6 +110,8 @@ class AdminVendorController{
             return;
         }
 
+     
+        $foodTypes = $this->foodTypeFormat($body['food_types'] ?? []);
          // 3) Sanitize or cast fields
         $data = [
             'email'      => $body['email'],
@@ -93,7 +119,7 @@ class AdminVendorController{
             'name'       => $this->sanitizeText($body['name']),
             'phone'      => $body['phone'] ?? null,
             'address'    => $body['address'] ?? null,
-            'food_types' => $body['food_types'] ?? [],   // TEXT[] array
+            'food_types' => $foodTypes,   // Use processed food types
             'rating'     => $body['rating'] ?? 0,
           
         ];
@@ -132,8 +158,10 @@ class AdminVendorController{
     }
 
     
+
+    
     /**
-     * PUT /api/admin/vendors/image/{id}
+     * P /api/admin/vendors/image/{id}
      * Update an existing vendor's details.
     */
     public function updateVendorImage(int $vendorId):void{

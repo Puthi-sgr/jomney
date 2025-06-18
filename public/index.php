@@ -81,7 +81,9 @@ $router->patch('/api/admin/orders/{id}/status', [$orderCtrl, 'updateStatus'], [A
 // ─────── Customer Management ───────
 $customerCtrl = new AdminCustomerController();
 $router->get('/api/admin/customers', [$customerCtrl, 'index'], [AdminMiddleware::class, 'check']);
+$router->post('/api/admin/customers', [$customerCtrl, 'store'], [AdminMiddleware::class, 'check']);
 $router->get('/api/admin/customers/{id}', [$customerCtrl, 'show'], [AdminMiddleware::class, 'check']);
+$router->post('/api/admin/customers/image/{id}', [$customerCtrl, 'updateCustomerImage'], [AdminMiddleware::class, 'check']);
 $router->delete('/api/admin/customers/{id}', [$customerCtrl, 'delete'], [AdminMiddleware::class, 'check']);
 
 // ─────── Payment Management ───────
