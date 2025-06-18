@@ -5,17 +5,21 @@ use App\Core\Response;
 use App\Traits\ValidationTrait;
 use App\Models\Food;
 use App\Models\Vendor; 
+use App\Core\CloudinaryService;
+use Cloudinary\Cloudinary;
 
 class AdminFoodController{
     use ValidationTrait;
 
     private Food $foodModel;
     private Vendor $vendorModel;
+    private CloudinaryService $cloudinaryService;
 
     public function __construct()
     {
         $this->foodModel   = new Food();
         $this->vendorModel = new Vendor();
+        $this->cloudinaryService = new CloudinaryService();
     }
 
     /**
@@ -72,7 +76,16 @@ class AdminFoodController{
     */
     public function store(): void
     {
-        $body = json_decode(file_get_contents('php://input'), true); //Data is sent from the client
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        
+        if (strpos($contentType, 'multipart/form-data') !== false) {
+            $body = $_POST;
+        } else {
+            $body = json_decode(file_get_contents('php://input'), true);
+        }
+
+        // DEBUG: Log the $_FILES structure
+        error_log("FILES structure: " . print_r($_FILES, true));
 
         // 1) Validate vendor_id exists
         $vendorId = (int) ($body['vendor_id'] ?? 0);
@@ -81,7 +94,7 @@ class AdminFoodController{
             return;
         }
 
-         // 2) Validate name, price
+        // 2) Validate name, price
         if (!$this->validateText($body['name'] ?? '', 1, 100)) {
             Response::error('Invalid name', [] , 422);
             return;
@@ -95,7 +108,6 @@ class AdminFoodController{
         $description = $body['description'] ?? null;
         $category    = $body['category'] ?? null;
         $readyTime   = isset($body['ready_time']) ? (int) $body['ready_time'] : null;
-        $images      = $body['images'] ?? []; // TEXT[] array
 
         // 4) Build data array
         $data = [
@@ -106,19 +118,155 @@ class AdminFoodController{
             'price'       => (float) $body['price'],
             'ready_time'  => $readyTime,
             'rating'      => $body['rating'] ?? 0.0,
-            'images'      => $images,
+            'image'       => null, // Single image
         ];
 
-        // 5) Insert
-        $result = $this->foodModel->create($data);
-        if(!$result){
-            Response::error('Failed to create food item', [], 500);
+        // 5) Insert the data into DB
+        $foodId = $this->foodModel->create($data);
+        
+        if (!$foodId) {
+            Response::error('Failed to create food', [], 500);
             return;
         }
 
-        Response::success('Food item created', [], 201);
-        return;
+        // 6) Handle single image upload
+        $uploadedImageUrl = null;
+        
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
+            $uploadedImageUrl = $this->cloudinaryService->uploadImage(
+                $_FILES['image']['tmp_name'],
+                "foodDelivery/vendors/vendor-{$vendorId}/food-{$foodId}/image"
+            );
+            
+            if ($uploadedImageUrl) {
+                $this->foodModel->imageUpdate($foodId, $uploadedImageUrl);
+                error_log("Uploaded image: " . $uploadedImageUrl);
+            }
+        }
+
+        Response::success('Food created successfully', [
+            'food_id' => $foodId, 
+            'image_uploaded' => $uploadedImageUrl ? true : false,
+            'image_url' => $uploadedImageUrl
+        ], 201);
     }
+
+    private function processImagesArray($filesArray, $vendorId, $foodId): array
+    {
+        $uploadedImages = [];
+        
+        if (is_array($filesArray['name'])) {
+            // Multiple files uploaded with array structure
+            error_log("Processing multiple files as array");
+            $fileCount = count($filesArray['name']);
+            
+            for ($i = 0; $i < $fileCount; $i++) {
+                if ($filesArray['error'][$i] === 0) {
+                    $photoUrl = $this->cloudinaryService->uploadImage(
+                        $filesArray['tmp_name'][$i],
+                        "foodDelivery/vendors/vendor-{$vendorId}/food-{$foodId}/image-{$i}"
+                    );
+                    
+                    if ($photoUrl) {
+                        $uploadedImages[] = $photoUrl;
+                        error_log("Uploaded image " . ($i + 1) . ": " . $photoUrl);
+                    }
+                }
+            }
+        } else {
+            // Single file uploaded
+            error_log("Processing single file");
+            if ($filesArray['error'] === 0) {
+                $photoUrl = $this->cloudinaryService->uploadImage(
+                    $filesArray['tmp_name'],
+                    "foodDelivery/vendors/vendor-{$vendorId}/food-{$foodId}/image-0"
+                );
+                
+                if ($photoUrl) {
+                    $uploadedImages[] = $photoUrl;
+                    error_log("Uploaded single image: " . $photoUrl);
+                }
+            }
+        }
+        
+        return $uploadedImages;
+    }
+
+    private function processIndividualImages($files, $vendorId, $foodId): array
+    {
+        $uploadedImages = [];
+        $imageIndex = 0;
+        
+        // Look for any key that starts with 'image'
+        foreach ($files as $key => $file) {
+            if (strpos($key, 'image') === 0 && $file['error'] === 0) {
+                error_log("Processing individual file: " . $key);
+                $photoUrl = $this->cloudinaryService->uploadImage(
+                    $file['tmp_name'],
+                    "foodDelivery/vendors/vendor-{$vendorId}/food-{$foodId}/image-{$imageIndex}"
+                );
+                
+                if ($photoUrl) {
+                    $uploadedImages[] = $photoUrl;
+                    error_log("Uploaded image from {$key}: " . $photoUrl);
+                    $imageIndex++;
+                }
+            }
+        }
+        
+        return $uploadedImages;
+    }
+     public function updateVendorImage(int $foodId): void {
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        
+        if (strpos($contentType, 'multipart/form-data') !== false) {
+            $body = $_POST;
+        } else {
+            Response::error('Only accept form data', [], 400);
+            return;
+        }
+        
+        // Check if food exists
+        $food = $this->foodModel->find($foodId);
+        if (!$food) {
+            Response::error('Food not found', [], 404);
+            return;
+        }
+        
+        $vendorId = $food["vendor_id"];
+        
+        // Handle single image upload (consistent with store method)
+        $uploadedImageUrl = null;
+        
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
+            // Upload the photo to cloudinary with consistent naming
+            $uploadedImageUrl = $this->cloudinaryService->uploadImage(
+                $_FILES['image']['tmp_name'], 
+                "foodDelivery/vendors/vendor-{$vendorId}/food-{$foodId}/image"
+            );
+
+            // Update the food with the new image URL
+            if ($uploadedImageUrl) {
+                $result = $this->foodModel->imageUpdate($foodId, $uploadedImageUrl);
+            
+                if (!$result) {
+                    Response::error("Image upload failed", ["result" => $result], 500);
+                    return;
+                }
+            
+                error_log("Updated image for food {$foodId}: " . $uploadedImageUrl);
+                Response::success("Image updated successfully", [
+                    'food_id' => $foodId,
+                    'image_url' => $uploadedImageUrl
+                ], 200);
+            } else {
+                Response::error("Failed to upload image to Cloudinary", [], 500);
+            }
+        } else {
+            Response::error("No valid image file provided", [], 400);
+        }
+    }
+    
 
     /**
      * PUT /api/admin/foods/{id}
@@ -137,12 +285,16 @@ class AdminFoodController{
 
         // If vendor is updated
         if (isset($body['vendor_id'])) {
+               
             $vendorId = (int) $body['vendor_id'];
             if (!$this->vendorModel->find($vendorId)) {
                 Response::error('Vendor not found', [], 422);
                 return;
             }
             $updateData['vendor_id'] = $vendorId;
+        }else if(!isset($body['vendor_id'])){
+            Response::error('Vendor id key is not set', [], 422);
+            return;
         }
 
         // If name is updated

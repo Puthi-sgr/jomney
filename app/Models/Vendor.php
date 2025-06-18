@@ -45,7 +45,7 @@ class Vendor
         ]);
 
         return $result ? (int)$this->db->lastInsertId() : false;
-            //Returning id specifically to update photos within the store controller
+        //Returning id specifically to update photos within the store controller
 
         //Asking what id did it just inserted into the database
     }
@@ -64,28 +64,30 @@ class Vendor
         ]);
     }
 
-    public function update(int $id, array $data): bool{
-        $sql = "UPDATE vendor
-            SET 
-                name = :name,
-                address = :address,
-                phone = :phone,
-                food_types = :food_types,
-                rating = :rating,
-                image = :image
-            WHERE id = :id;  
-        ";
-
+    public function update(int $id, array $data): bool
+    {
+        // Build dynamic SQL based on provided fields
+        $fields = [];
+        $params = ['id' => $id];
+        
+        $allowedFields = ['name', 'address', 'phone', 'food_types', 'rating', 'image', 'password'];
+        
+        foreach ($allowedFields as $field) {
+            if (array_key_exists($field, $data)) {
+                $fields[] = "$field = :$field";
+                $params[$field] = $data[$field];
+            }
+        }
+        
+        // If no fields to update, return true
+        if (empty($fields)) {
+            return true;
+        }
+        
+        $sql = "UPDATE vendor SET " . implode(', ', $fields) . " WHERE id = :id";
+        
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([
-            'id'          => $id,
-            'name'        => $data['name'],
-            'address'     => $data['address'],
-            'phone'       => $data['phone'],
-            'food_types'  => $data['food_types'],
-            'rating'      => $data['rating'],
-            'image'   => $data['image'],
-        ]);
+        return $stmt->execute($params);
     }
 
     public function delete(int $id):bool{

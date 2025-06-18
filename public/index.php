@@ -67,6 +67,7 @@ $router->delete('/api/admin/vendors/{id}/delete', [$vendorCtrl, 'delete'], [Admi
 $foodCtrl = new AdminFoodController();
 $router->get('/api/admin/foods', [$foodCtrl, 'index'], [AdminMiddleware::class, 'check']);
 $router->post('/api/admin/foods', [$foodCtrl, 'store'], [AdminMiddleware::class, 'check']);
+$router->post('/api/admin/foods/image/{id}', [$foodCtrl, 'updateVendorImage'], [AdminMiddleware::class, 'check']);
 $router->get('/api/admin/foods/{id}', [$foodCtrl, 'show'], [AdminMiddleware::class, 'check']);
 $router->put('/api/admin/foods/{id}', [$foodCtrl, 'update'], [AdminMiddleware::class, 'check']); 
 $router->delete('/api/admin/foods/{id}', [$foodCtrl, 'delete'], [AdminMiddleware::class, 'check']);

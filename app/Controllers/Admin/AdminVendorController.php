@@ -102,7 +102,7 @@ class AdminVendorController{
         // 4) Insert into DB
             //The create model returns an ID of the vendor just created
         $vendorId = $this->vendorModel->create($data);
-
+    
         //check if the key photo is not null and there are no errors
         if (isset($_FILES['image']) && $_FILES['image']['error'] === 0){
             error_log("Image file found: " . $_FILES['image']['name']);
@@ -184,6 +184,7 @@ class AdminVendorController{
     */
     public function update(int $id): void
     {  
+        
         //1) Check if vendor exists
         $vendor = $this->vendorModel->find($id);
         if (!$vendor) {
@@ -191,8 +192,26 @@ class AdminVendorController{
             return;
         }
 
-        // 2) Parse the JSON body if vendor exists
-        $body = json_decode(file_get_contents('php://input'), true);
+        // 2) Parse the request body - handle both JSON and form-data
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        
+        if (strpos($contentType, 'multipart/form-data') !== false) {
+            $body = $_POST; // Form data
+        } else {
+            $body = json_decode(file_get_contents('php://input'), true); // JSON data
+            
+            // Check if JSON parsing failed
+            if ($body === null && json_last_error() !== JSON_ERROR_NONE) {
+                Response::error('Invalid JSON format: ' . json_last_error_msg(), [], 400);
+                return;
+            }
+        }
+        
+        // Handle food_types array if it's a JSON string from form-data
+        if (isset($body['food_types']) && is_string($body['food_types'])) {
+            $body['food_types'] = json_decode($body['food_types'], true);
+        }
+
         $updateData = [];
         if (isset($body['name'])) {
             if (!$this->validateText($body['name'], 1, 100)) {

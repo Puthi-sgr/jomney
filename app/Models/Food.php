@@ -58,15 +58,15 @@ class Food
         return $stmt->fetchAll();
     }
 
-    public function create(array $data): bool
+    public function create(array $data): int|false
     {
         $sql = "INSERT INTO food
-                (vendor_id, name, description, category, price, ready_time, rating, images)
+                (vendor_id, name, description, category, price, ready_time, rating, image)
                 VALUES
-                (:vendor_id, :name, :description, :category, :price, :ready_time, :rating, :images)";
+                (:vendor_id, :name, :description, :category, :price, :ready_time, :rating, :image)";
         $stmt = $this->db->prepare($sql);
 
-        return $stmt->execute([
+        $result = $stmt->execute([
             'vendor_id'   => $data['vendor_id'],       
             'name'        => $data['name'],
             'description' => $data['description'] ?? null,
@@ -74,8 +74,20 @@ class Food
             'price'       => $data['price'],
             'ready_time'  => $data['ready_time'] ?? null,
             'rating'      => $data['rating'] ?? 0,
-            'images'      => $data['images'] ?? [],    // TEXT[] array of URLs
+            'image'       => $data['image'] ?? null,    // Single image URL
         ]);
+
+        return $result ? (int)$this->db->lastInsertId() : false;
+    }
+
+    public function imageUpdate(int $foodId, string $imageUrl): bool {
+        $sql = "UPDATE food SET image = :image WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        
+        return $stmt->execute([
+            'id' => $foodId,
+            'image' => $imageUrl,
+        ]); 
     }
 
     public function update(int $foodId, array $data): bool{
@@ -106,15 +118,17 @@ class Food
             $conditions[] = "rating = :rating";
             $params['rating'] = $data['rating'];
         }
-        if(array_key_exists('images', $data)) {
-            $conditions[] = "images = :images";
-            $params['images'] = $data['images'];
+        if(array_key_exists('image', $data)) {
+            $conditions[] = "image = :image";
+            $params['image'] = $data['image'];
         }
+        
         if(!empty($conditions)) {
-            $sql .= ", " . implode(', ', $conditions) . "WHERE id = :id";
+            $sql .= ", " . implode(', ', $conditions);
         }
+        
+        $sql .= " WHERE id = :id";
         $params['id'] = $foodId;
-
 
         $stmt = $this->db->prepare($sql);
         return $stmt->execute($params);
