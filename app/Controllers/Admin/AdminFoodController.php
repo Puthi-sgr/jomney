@@ -5,6 +5,7 @@ use App\Core\Response;
 use App\Traits\ValidationTrait;
 use App\Models\Food;
 use App\Models\Vendor; 
+use App\Models\Inventory;
 use App\Core\CloudinaryService;
 use Cloudinary\Cloudinary;
 
@@ -13,12 +14,14 @@ class AdminFoodController{
 
     private Food $foodModel;
     private Vendor $vendorModel;
+    private Inventory $inventoryModel;
     private CloudinaryService $cloudinaryService;
 
     public function __construct()
     {
         $this->foodModel   = new Food();
         $this->vendorModel = new Vendor();
+        $this->inventoryModel = new Inventory();
         $this->cloudinaryService = new CloudinaryService();
     }
 
@@ -129,7 +132,11 @@ class AdminFoodController{
             return;
         }
 
-        // 6) Handle single image upload
+        // 6) Seed the inventory
+        $this->inventoryModel->create($foodId, (int)$body ?? 1);
+
+
+        // 7) Handle single image upload
         $uploadedImageUrl = null;
         
         if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
