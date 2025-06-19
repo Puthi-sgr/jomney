@@ -34,7 +34,7 @@ class AdminOrderController
     {
         // For MVP: return all orders
         $orders = $this->orderModel->all(); 
-        Response::success('All orders', [$orders], 200);
+        Response::success('All orders', ['orders' => $orders], 200);
         return;
     }
     
@@ -51,6 +51,9 @@ class AdminOrderController
         }
 
         $foodItems = $this->orderModel->getOrderWithFoodItems($orderId);
+
+         Response::success('Order', ['foodItems' => $foodItems], 200);
+        return;
     }
 
     /**

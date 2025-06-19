@@ -13,12 +13,15 @@ class Order{
         $this->db = (new Database())->getConnection();
     }
 
-    public function all():array{
-        $stmt = $this->db->query("SELECT * FROM orders");
+    public function all(): array {
+        $stmt = $this->db->query("SELECT  
+            o.*, 
+            os.label AS statusLabel
+            FROM orders o
+            JOIN order_statuses os ON os.id = o.status_id");
         $orders = $stmt->fetchAll();
         return $orders;
     }
-
     // Add this method for the controller's needs
     public function getOrderWithFoodItems(int $orderId): ?array
     {
@@ -27,7 +30,7 @@ class Order{
             return null;
         }
 
-        $sql = "SELECT fo.*, f.name, f.images
+        $sql = "SELECT fo.*, f.name, f.image
             FROM food_order fo
             JOIN food f ON fo.food_id = f.id
             WHERE fo.order_id = :order_id";
@@ -63,7 +66,7 @@ class Order{
             //now we have access to two additional columns
             "SELECT o.*, 
             os.key AS status_key, 
-            os.label AS status_label
+            os.label AS status_label,
             c.name AS customer_name
              FROM orders o
              JOIN order_statuses os ON o.status_id = os.id
