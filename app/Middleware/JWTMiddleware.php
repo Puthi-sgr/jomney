@@ -34,6 +34,7 @@ class JWTMiddleware{
 
             //3.Attach user ID
             $_SERVER['user_id'] = $payload->sub;
+            $_SERVER['user_role'] = $payload->role ?? 'customer'; // ← Add this line!
            
         }catch(Exception $e){
             Response::error('Invalid token', ["message" => $e->getMessage(), "stackTrace" => $e->getTrace()], 401);

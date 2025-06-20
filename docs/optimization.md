@@ -1,0 +1,1 @@
+## Customer and Admin update image should use the same trait ##

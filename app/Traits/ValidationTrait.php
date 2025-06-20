@@ -12,6 +12,7 @@ trait ValidationTrait{
         return $length >= $min && $length <= $max;
     }
 
+
     protected function validateInt(string $input):bool {
         return ctype_digit($input);
         //validate integer 0-9

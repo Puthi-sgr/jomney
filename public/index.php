@@ -10,6 +10,7 @@ use App\Core\ErrorHandler;
 use App\Core\JWTService;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\AdminMiddleware;
+use App\Middleware\CustomerMiddleware; 
 use App\Middleware\JWTMiddleware;
 use App\Models\Order;
 use Firebase\JWT\JWT;
@@ -23,6 +24,9 @@ use App\Controllers\Admin\AdminOrderController;
 use App\Controllers\Admin\AdminCustomerController;
 use App\Controllers\Admin\AdminPaymentController;
 use App\Controllers\Admin\AdminSettingsController;
+
+// Customer Controllers
+use App\Controllers\Customer\CustomerAuthController;
 
 //.env
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__, '/../');
@@ -38,11 +42,20 @@ $router->get('/', function (){
         echo "This is a public's homepage";
     });
 
-$router->get('/menu', [new MenuController(), 'index'], [AuthMiddleware::class, 'check']);
-$router->get('/menu/create', [new MenuController(), 'create']);
-$router->post('/menu/store', [new MenuController(), 'store']);
 
-$authController = new AuthController();
+// ─────── Customer Authentication Routes ───────
+$customerAuth = new CustomerAuthController();
+
+// Public customer routes
+$router->post('/api/v1/auth/register', [$customerAuth, 'register']);
+$router->post('/api/v1/auth/login', [$customerAuth, 'login']);
+
+// Protected customer routes
+$router->post('/api/v1/auth/logout', [$customerAuth, 'logout'], [CustomerMiddleware::class, 'check']);
+$router->get('/api/v1/auth/profile', [$customerAuth, 'profile'], [CustomerMiddleware::class, 'check']);
+$router->put('/api/v1/auth/profile', [$customerAuth, 'updateProfile'], [CustomerMiddleware::class, 'check']);
+$router->post('/api/v1/auth/profile/image', [$customerAuth, 'updateCustomerProfilePicture'], [CustomerMiddleware::class, 'check']);
+
 
 // ─────── Admin Auth ───────
 $adminAuth = new AdminAuthController();
@@ -105,14 +118,8 @@ $router->post('/loginJWT', [$authController, 'login'], null);
 $router->get('/logout', [$authController, 'logout'], [JWTMiddleware::class, 'check'] );
 
 /* ---------------------ORDERS---------------------------- */
-$orderController = new OrderController();
-$router->get('/orders', [$orderController, 'index'], [JWTMiddleware::class, 'check']);
-$router->post('/orders', [$orderController, 'create'], [JWTMiddleware::class, 'check']);
 
 /* ---------------------MENU---------------------------- */
-$menuController = new MenuController();
-$router->get('/menu-items', [$menuController, 'index'], [JWTMiddleware::class, 'check']);
-$router->post('/menu-items', [$menuController, 'create'], [JWTMiddleware::class, 'check']);
 
 
 /* ---------------------PAYMENTS---------------------------- */

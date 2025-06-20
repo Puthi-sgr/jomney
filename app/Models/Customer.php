@@ -52,7 +52,7 @@ class Customer{
      *                    - lat_lng (string, optional)
      * @return bool True if creation was successful, false otherwise
      */
-    public function create(array $data): bool{
+    public function create(array $data): int|false{
 
             $sql = "INSERT INTO customer
                 (email, password, name, address, phone, location, lat_lng)
@@ -61,7 +61,7 @@ class Customer{
             
             $stmt = $this->db->prepare($sql);
 
-            return $stmt->execute([
+            $result = $stmt->execute([
                 'email'     => $data['email'],            // unique
                 'password'  => password_hash($data['password'], PASSWORD_DEFAULT),
                 'name'      => $data['name'],
@@ -70,6 +70,10 @@ class Customer{
                 'location'  => $data['location'] ?? null,
                 'lat_lng'   => $data['lat_lng'] ?? null,
             ]);
+
+            return $result ? (int)$this->db->lastInsertId() : false;
+          //Returning id specifically to generate the token
+
     }
 
     public function imageUpdate(int $customerId, array $data): bool
