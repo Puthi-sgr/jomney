@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Core\Database;
 use App\Models\Inventory;
+use App\Models\FoodOrder;
 use App\Exceptions\OutOfStockException;
 use PDO;
 use Exception;
@@ -12,10 +13,12 @@ class Order{
     protected PDO $db;
 
     private Inventory $inventoryModel;
+    private FoodOrder $foodOrderModel;
     public function __construct(){
         //Get a PDO connect from a database wrapper
         $this->db = (new Database())->getConnection();
         $this->inventoryModel = new Inventory();
+        $this->foodOrderModel = new FoodOrder();
     }
 
     public function all(): array {
@@ -84,7 +87,7 @@ class Order{
         return (int) $stmt->fetchColumn();
     }
 
-    public function find(int $id): ?array
+    public function find(int $orderId): ?array
     {
         $stmt = $this->db->prepare(
             //we grab the status key and status label in this query through table join
@@ -98,10 +101,60 @@ class Order{
              JOIN customer c ON o.customer_id = c.id
              WHERE o.id = :id"
         );
-        $stmt->execute(['id' => $id]);
+        $stmt->execute(['id' => $orderId]);
         return $stmt->fetch() ?: null;
     }
-    //Get all orders from a particular user
+
+    public function findOrderForCustomer(int $orderId, int $customerId): ?array
+    {
+        $sql = "SELECT o.*, 
+                    os.key AS status_key, 
+                    os.label AS status_label,
+                    c.name AS customer_name
+                FROM orders o
+                JOIN order_statuses os ON o.status_id = os.id
+                JOIN customer c ON o.customer_id = c.id
+                WHERE o.id = :order_id AND o.customer_id = :customer_id";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            'order_id' => $orderId,
+            'customer_id' => $customerId
+        ]);
+        
+        return $stmt->fetch() ?: null;
+    }
+
+    
+    public function getOrderHistoryByPage(int $customerId, int $page = 1){
+        //The point is to calculate only the necessary order result
+        $limit = 10;                           // 10 orders per page
+        $offset = ($page - 1) * $limit;        // Skip previous pages
+        
+        $sql = "SELECT * FROM orders 
+                WHERE customer_id = ? 
+                ORDER BY created_at DESC 
+                LIMIT ? OFFSET ?";             // Only get 10 records
+                
+        // Page 1: LIMIT 10 OFFSET 0  (orders 1-10)
+        // Page 2: LIMIT 10 OFFSET 10 (orders 11-20)  
+        // Page 3: LIMIT 10 OFFSET 20 (orders 21-30)
+    }
+
+    public function getOrderHistory(int $customerId): ?array{
+
+        $sql = "SELECT * FROM orders 
+                WHERE customer_id = :id 
+                ORDER BY created_at DESC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([    
+            'id' => $customerId
+        ]);
+
+        return $stmt->fetchAll() ?: null;
+                
+    }
 
     public function updateStatus(int $orderId, int $statusId): bool{
 
@@ -115,20 +168,25 @@ class Order{
         ]);
     }
 
-    // Add this method for the controller's needs
     
-    /**
-     * Add food item to order - ADDED MISSING METHOD
-     */
-    private function addFoodToOrder(int $orderId, int $foodId, int $quantity, float $price): bool
-    {
-        $sql = "INSERT INTO food_order (order_id, food_id, quantity, price) 
-                VALUES (?, ?, ?, ?)";
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute([$orderId, $foodId, $quantity, $price]);
-    }
-    
+
     //lock -> total amount -> create order -> adjust the inventory -> create food_order(many) record
+
+    /* 
+        $items = [
+            [
+                'food_id' => 5,      // Pizza ID
+                'quantity' => 2      // Customer wants 2 pizzas
+            ],
+            [
+                'food_id' => 12,     // Burger ID  
+                'quantity' => 1      // Customer wants 1 burger
+            ]
+        ];
+    */
+
+    //lock -> total amount -> create order -> adjust the inventory -> create food_order(many) record
+
     public function createWithInventory(int $customerId, array $items, ?string $remarks = null): int
     {
         //Temporary draft the inventory
@@ -187,7 +245,7 @@ class Order{
                 }
                 
                 // After deduction we add the food order detail
-                $addResult = $this->addFoodToOrder($orderId, $item['food_id'], $item['quantity'], $item['price']);
+                $addResult = $this->foodOrderModel->create($orderId, $item['food_id'], $item['price'], $item['quantity']);
                 if (!$addResult) {
                     throw new Exception("Failed to add food item {$item['food_id']} to order {$orderId}");
                 }
@@ -200,6 +258,88 @@ class Order{
         } catch (Exception $e) {
             $this->db->rollBack();
             throw $e;
+        }
+    }
+
+    public function cancelIfPending(int $orderId, int $customerId): ?array
+    {
+        // Start transaction since we might need to restore inventory
+        $this->db->beginTransaction();
+        
+        try {
+            // First, find the order and check if it belongs to customer AND is pending
+            $sql = "SELECT o.*, os.key AS status_key 
+                    FROM orders o
+                    JOIN order_statuses os ON o.status_id = os.id
+                    WHERE o.id = :order_id 
+                    AND o.customer_id = :customer_id 
+                    AND os.key = 'pending'";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                'order_id' => $orderId,
+                'customer_id' => $customerId
+            ]);
+            
+            $order = $stmt->fetch();
+            
+            // If order doesn't exist, not owned by customer, or not pending
+            if (!$order) {
+                $this->db->rollBack();
+                return null;
+            }
+            
+            // Get the "cancelled" status ID
+            $cancelledStatusSql = "SELECT id FROM order_statuses WHERE key = 'cancelled'";
+            $cancelledStmt = $this->db->prepare($cancelledStatusSql);
+            $cancelledStmt->execute();
+            $cancelledStatusId = $cancelledStmt->fetchColumn();
+            
+            if (!$cancelledStatusId) {
+                throw new Exception("Cancelled status not found");
+            }
+            
+            // Update order status to cancelled
+            $updateSql = "UPDATE orders 
+                        SET status_id = :status_id, updated_at = NOW() 
+                        WHERE id = :order_id";
+            //Update to the cancelled status id
+            $updateStmt = $this->db->prepare($updateSql);
+            $success = $updateStmt->execute([
+                'status_id' => $cancelledStatusId,
+                'order_id' => $orderId
+            ]);
+            
+            if (!$success) {
+                throw new Exception("Failed to update order status");
+            }
+            
+            // Optional: Restore inventory (if you want to put items back in stock)
+            $this->restoreInventoryForOrder($orderId);
+            
+            $this->db->commit();
+            
+            // Return the updated order
+            return $this->findOrderForCustomer($orderId, $customerId);
+            
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }       
+
+    // Helper method to restore inventory when order is cancelled
+    private function restoreInventoryForOrder(int $orderId): void
+    {
+        // Get all food items from this order
+        $sql = "SELECT food_id, quantity FROM food_order WHERE order_id = :order_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['order_id' => $orderId]);
+        $foodItems = $stmt->fetchAll();
+        
+        // Restore inventory for each item
+        foreach ($foodItems as $item) {
+            $this->inventoryModel->adjust($item['food_id'], $item['quantity']); // Add back to inventory
         }
     }
 

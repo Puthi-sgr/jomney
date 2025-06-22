@@ -12,6 +12,7 @@ use App\Middleware\AuthMiddleware;
 use App\Middleware\AdminMiddleware;
 use App\Middleware\CustomerMiddleware; 
 use App\Middleware\JWTMiddleware;
+use App\Middleware\CorsMiddleware;
 use App\Models\Order;
 use Firebase\JWT\JWT;
 
@@ -27,6 +28,8 @@ use App\Controllers\Admin\AdminSettingsController;
 
 // Customer Controllers
 use App\Controllers\Customer\CustomerAuthController;
+
+CorsMiddleware::handle();
 
 //.env
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__, '/../');
