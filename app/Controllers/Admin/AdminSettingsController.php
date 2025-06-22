@@ -50,7 +50,6 @@ class AdminSettingsController
         } 
 
         Response::success('Status created', [$result], 201);
-        return;
     }
 
     /**
@@ -82,13 +81,12 @@ class AdminSettingsController
             return;
         }
         $result = $this->statusModel->update($status['id'], $label);
-        if ($result) {
+        if (!$result) {
             Response::error('Failed to update', [], 500);
             return;
         } 
         
         Response::success('Status updated');
-        return;
     }
 
     public function deleteStatus(string $key): void
@@ -101,13 +99,9 @@ class AdminSettingsController
         $result = $this->statusModel->delete($status['id']);
         if (!$result) {
             Response::error('Failed to delete', [], 500);
+            return;
         } 
 
-        Response::success(
-            "Status deleted",
-            [],
-            200
-        );
-        return;
+        Response::success('Status deleted');
     }
 }

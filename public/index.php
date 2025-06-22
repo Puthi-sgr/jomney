@@ -74,13 +74,13 @@ $router->post('/api/admin/vendors', [$vendorCtrl, 'store'], [AdminMiddleware::cl
 $router->get('/api/admin/vendors/{id}', [$vendorCtrl, 'show'], [AdminMiddleware::class, 'check']);
 $router->post('/api/admin/vendors/{id}', [$vendorCtrl, 'updateVendorImage'], [AdminMiddleware::class, 'check']);
 $router->put('/api/admin/vendors/{id}', [$vendorCtrl, 'update'], [AdminMiddleware::class, 'check']);
-$router->delete('/api/admin/vendors/{id}/delete', [$vendorCtrl, 'delete'], [AdminMiddleware::class, 'check']);
+$router->delete('/api/admin/vendors//delete/{id}', [$vendorCtrl, 'delete'], [AdminMiddleware::class, 'check']);
 
 // ─────── Food CRUD ───────
 $foodCtrl = new AdminFoodController();
 $router->get('/api/admin/foods', [$foodCtrl, 'index'], [AdminMiddleware::class, 'check']);
 $router->post('/api/admin/foods', [$foodCtrl, 'store'], [AdminMiddleware::class, 'check']);
-$router->post('/api/admin/foods/image/{id}', [$foodCtrl, 'updateVendorImage'], [AdminMiddleware::class, 'check']);
+$router->post('/api/admin/foods/image/{id}', [$foodCtrl, 'updateFoodImage'], [AdminMiddleware::class, 'check']);
 $router->get('/api/admin/foods/{id}', [$foodCtrl, 'show'], [AdminMiddleware::class, 'check']);
 $router->put('/api/admin/foods/{id}', [$foodCtrl, 'update'], [AdminMiddleware::class, 'check']); 
 $router->delete('/api/admin/foods/{id}', [$foodCtrl, 'delete'], [AdminMiddleware::class, 'check']);
@@ -96,6 +96,7 @@ $customerCtrl = new AdminCustomerController();
 $router->get('/api/admin/customers', [$customerCtrl, 'index'], [AdminMiddleware::class, 'check']);
 $router->post('/api/admin/customers', [$customerCtrl, 'store'], [AdminMiddleware::class, 'check']);
 $router->get('/api/admin/customers/{id}', [$customerCtrl, 'show'], [AdminMiddleware::class, 'check']);
+$router->put('/api/admin/customers/{id}', [$customerCtrl, 'update'], [AdminMiddleware::class, 'check']);
 $router->post('/api/admin/customers/image/{id}', [$customerCtrl, 'updateCustomerImage'], [AdminMiddleware::class, 'check']);
 $router->delete('/api/admin/customers/{id}', [$customerCtrl, 'delete'], [AdminMiddleware::class, 'check']);
 
@@ -113,9 +114,7 @@ $router->put('/api/admin/order-statuses/{key}', [$settingsCtrl, 'updateStatus'],
 $router->delete('/api/admin/order-statuses/{key}', [$settingsCtrl, 'deleteStatus'], [AdminMiddleware::class, 'check']);
 
 /* ------------------AUTHs---------------------------------- */
-$router->post('/register', [$authController, 'register'], null);
-$router->post('/loginJWT', [$authController, 'login'], null);
-$router->get('/logout', [$authController, 'logout'], [JWTMiddleware::class, 'check'] );
+
 
 /* ---------------------ORDERS---------------------------- */
 

@@ -223,7 +223,7 @@ class AdminFoodController{
         
         return $uploadedImages;
     }
-     public function updateVendorImage(int $foodId): void {
+     public function updateFoodImage(int $foodId): void {
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
         
         if (strpos($contentType, 'multipart/form-data') !== false) {

@@ -29,27 +29,33 @@ class CustomerAuthController{
     public function register(): void
     {
         $body = json_decode(file_get_contents('php://input'), true) ?? []; //json
-        $email    = trim($body['email']    ?? '');
-        $password = trim($body['password'] ?? '');
-        $name     = trim($body['name']     ?? '');
+        $email    = $body['email'];
+        $password = $body['password'];
+        $name     = $body['name'];
+        $address  = $body['address']  ?? '';
+        $phone    = $body['phone']    ?? '';
+        $location = $body['location'] ?? '';
+        $lat_lng  = $body['lat_lng']  ?? '';
 
         // Basic validation
         if (!$this->validationEmail($email)) {
             Response::error('Valid email required', [], 422);
             return;
-        }
+        } 
     
         if ($this->customerModel->findByEmail($email)) {
             Response::error('Email already exists', [], 409);
             return;
         }
 
-        $hashed = password_hash($password, PASSWORD_BCRYPT);
-
         $customerId = $this->customerModel->create([
-            'email'    => $email,
-            'password' => $hashed,
-            'name'     => $name
+            'email'     => $email,
+            'password'  => $password,
+            'name'      => $name,
+            'address'   => $address ?: null,
+            'phone'     => $phone ?: null,
+            'location'  => $location ?: null,
+            'lat_lng'   => $lat_lng ?: null
         ]);
 
         //Token is generated with the customer ID that we have just created
@@ -60,8 +66,6 @@ class CustomerAuthController{
             'user_id' => $customerId
         ], 201);
     }
-
-
     /**
      * POST /api/auth/login
      * { "email": "...", "password": "..." }
@@ -69,27 +73,52 @@ class CustomerAuthController{
     public function login(): void
     {
         $body = json_decode(file_get_contents('php://input'), true) ?? [];
-        $email    = trim($body['email']    ?? '');
-        $password = trim($body['password'] ?? '');
+        $email = $body['email'] ?? '';
+        $password = $body['password'] ?? '';
 
+        // Debug: Log the incoming request (remove in production)
+        error_log("Login attempt - Email: " . $email);
+        error_log("Login attempt - Password length: " . strlen($password));
+
+        // Basic validation
+        if (!$this->validationEmail($email)) {
+            Response::error('Valid email required', [], 422);
+            return;
+        }
+
+        if (strlen($password) < 6) {
+            Response::error('Password must be at least 6 characters', [], 422);
+            return;
+        }
+
+        // Find user by email
         $user = $this->customerModel->findByEmail($email);
-
-        //just check the email
+        
+        // Debug: Check if user was found (remove in production)
         if (!$user) {
-            Response::error('Invalid email address', [], 401);
+            error_log("User not found for email: " . $email);
+            Response::error('Invalid credentials email', [], 401);
             return;
         }
 
-        //Checks the password after the user found
-        if (!password_verify($password, $user['password'])) {
-            Response::error('Incorrect password', [], 401);
+        // Debug: Log password verification (remove in production)
+        $passwordMatch = password_verify($password, $user['password']);
+        error_log("Password verification result: " . ($passwordMatch ? 'true' : 'false'));
+        error_log("Stored hash: " . $user['password']);
+
+        // Verify password
+        if (!$passwordMatch) {
+            error_log("Password mismatch for email: " . $email);
+            Response::error('Invalid credentials', [], 401);
             return;
         }
 
-
+        // Generate token
         $token = JWTService::generateToken($user['id'], 'customer');
+
+        // Success response
         Response::success('Login successful', [
-            'token'   => $token,
+            'token' => $token,
             'user_id' => $user['id']
         ]);
     }
@@ -133,9 +162,9 @@ class CustomerAuthController{
         Response::success('Profile updated', ['Customer' => $updated], 201);
     }
 
-    public function updateCustomerProfilePicture(int $customerId): void{
+    public function updateCustomerProfilePicture(): void{
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
-        
+        $customerId = $_SERVER['user_id'] ?? '';
         if (strpos($contentType, 'multipart/form-data') !== false) {
             $body = $_POST;
         } else {
@@ -152,8 +181,7 @@ class CustomerAuthController{
 
         // Check for image file
         if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
-            error_log("Image file found: " . $_FILES['image']['name']);
-            error_log("Image tmp_name: " . $_FILES['image']['tmp_name']);
+        
             
             // 1. Upload the photo to cloudinary
             $photoUrl = $this->cloudinaryService->uploadImage(
@@ -162,12 +190,11 @@ class CustomerAuthController{
                 // Path of the folders
             );
 
-            error_log("Cloudinary URL: " . ($photoUrl ?: 'FAILED'));
-
+         
             // 2. Update the customer with the path of cloudinary file
             if ($photoUrl) {
                 $result = $this->customerModel->imageUpdate($customerId, ['image' => $photoUrl]);
-                error_log("DB update result: " . ($result ? 'SUCCESS' : 'FAILED'));
+            
             } else {
                 Response::error("Image upload to Cloudinary failed", [], 500);
                 return;

@@ -16,7 +16,7 @@ class AdminOrderController
     private FoodOrder $foodOrderModel;
     private Food $foodModel;
     private Customer $customerModel;
-    private Vendor $vendorModel;                                                                                                                               public function __construct()
+    private Vendor $vendorModel;                                                                                                     public function __construct()
     {
         $this->orderModel     = new Order();
         $this->statusModel    = new OrderStatus();

@@ -34,13 +34,13 @@ class CustomerMiddleware{
                 return;
             }
 
-             // 4) Check that this admin actually exists in DB
+             // 4) Check that this customer actually exists in DB
             $customerId    = (int) $decoded->sub;
             $customerModel = new Customer();
             $customer      = $customerModel->find($customerId);
 
             if(!$customer){
-                Response::error('Admin not found',[],  404);
+                Response::error('Customer not found',[],  404);
                 return;
             }
 
