@@ -65,6 +65,80 @@ class AdminFoodController{
         Response::success('Food details',[$food], 200);
     }
 
+     /**
+     * GET /api/admin/foods/{id}/inventory
+     * Get current inventory stock for a food item
+     */
+    public function getInventory(int $foodId): void
+    {
+        // Check if food exists
+        $food = $this->foodModel->find($foodId);
+        if (!$food) {
+            Response::error('Food item not found', [], 404);
+            return;
+        }
+
+        // Get current stock
+        $currentStock = $this->inventoryModel->getStock($foodId);
+        
+        Response::success('Inventory retrieved', [
+            'food_id' => $foodId,
+            'food_name' => $food['name'],
+            'current_stock' => $currentStock
+        ]);
+    }
+
+     /**
+     * PATCH /api/admin/foods/{id}/inventory/adjust
+     * Adjust inventory stock (+ or -)
+     * Body: { "delta": 10 } or { "delta": -5 }
+     */
+    public function adjustInventory(int $foodId): void
+    {
+        // Check if food exists
+        $food = $this->foodModel->find($foodId);
+        if (!$food) {
+            Response::error('Food item not found', [], 404);
+            return;
+        }
+
+        $body = json_decode(file_get_contents('php://input'), true);
+        
+        // Validate delta
+        if (!isset($body['delta']) || !is_numeric($body['delta'])) {
+            Response::error('Delta is required and must be a number', [], 422);
+            return;
+        }
+
+        $delta = (int) $body['delta'];
+        
+        // Get current stock before adjustment
+        $currentStock = $this->inventoryModel->getStock($foodId);
+        
+        // Check if adjustment would result in negative stock
+        if (($currentStock + $delta) < 0) {
+            Response::error('Insufficient stock. Current stock: ' . $currentStock, [
+                'current_stock' => $currentStock,
+                'requested_delta' => $delta,
+                'would_result_in' => $currentStock + $delta
+            ], 422);
+            return;
+        }
+
+        // Perform the adjustment
+        $this->inventoryModel->adjust($foodId, $delta);
+        
+        // Get new stock level
+        $newStock = $this->inventoryModel->getStock($foodId);
+        
+        Response::success('Inventory adjusted successfully', [
+            'food_id' => $foodId,
+            'food_name' => $food['name'],
+            'previous_stock' => $currentStock,
+            'adjustment' => $delta,
+            'new_stock' => $newStock
+        ]);
+    }
     /**
      * POST /api/admin/foods
      * Body: { 

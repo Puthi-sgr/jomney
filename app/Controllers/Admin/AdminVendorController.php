@@ -266,7 +266,7 @@ class AdminVendorController{
 
          // If password is being updated
         if (isset($body['password']) && strlen($body['password']) >= 6) {
-            $updateData['password'] = password_hash($body['password'], PASSWORD_DEFAULT);
+            $updateData['password'] = $body['password'];
         }
 
         // 4) Persist changes

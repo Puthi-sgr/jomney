@@ -37,7 +37,7 @@ class Inventory{
     }
 
       /* + / – stock */
-    public function adjust(int $foodId, int $delta): void
+    public function adjust(int $foodId, int $delta): bool
     {
         $stmt = $this->db->prepare(
             "UPDATE inventory
@@ -45,7 +45,7 @@ class Inventory{
                    updated_at    = NOW()
              WHERE food_id = :fid"
         );
-        $stmt->execute(['d' => $delta, 'fid' => $foodId]);
+        return $stmt->execute(['d' => $delta, 'fid' => $foodId]);
     }
 
      /**

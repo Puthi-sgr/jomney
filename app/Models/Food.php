@@ -3,19 +3,22 @@
 namespace App\Models;
 
 use App\Core\Database;
+use App\Models\Inventory;
 use PDO;
 
 class Food
 {
     private PDO $db;
+    private Inventory $inventoryModel;
 
     public function __construct()
     {
         $this->db = (new Database())->getConnection();
+        $this->inventoryModel = new Inventory();
     }
 
     public function all($filters = []): array{
-        $sql = "SELECT * FROM food";
+        $sql = "SELECT f.*, i.qty_available FROM food f JOIN inventory i ON f.id = i.food_id";        
         $params = [];
         $conditions = [];
 

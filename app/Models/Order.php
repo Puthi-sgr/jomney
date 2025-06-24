@@ -24,9 +24,12 @@ class Order{
     public function all(): array {
         $stmt = $this->db->query("SELECT  
             o.*, 
+            c.name as customerName,
             os.label AS statusLabel
             FROM orders o
-            JOIN order_statuses os ON os.id = o.status_id");
+            JOIN order_statuses os ON os.id = o.status_id
+            JOIN customer c on o.customer_id = c.id
+            ");
         $orders = $stmt->fetchAll();
         return $orders;
     }

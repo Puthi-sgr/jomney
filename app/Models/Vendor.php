@@ -13,27 +13,42 @@ class Vendor
         $this->db = (new Database())->getConnection();
     }
 
-    public function all(): array{
+    public function all(): array
+    {
         $stmt = $this->db->query("SELECT * FROM vendor");
-        return $stmt->fetchAll();
+        $results = $stmt->fetchAll();
+        
+        // Convert JSON strings back to PHP arrays
+        foreach ($results as &$vendor) {
+            if (isset($vendor['food_types'])) {
+                $vendor['food_types'] = json_decode($vendor['food_types'], true) ?: [];
+            }
+        }
+        
+        return $results;
     }
 
     public function find(int $id): ?array
     {
         $stmt = $this->db->prepare("SELECT * FROM vendor WHERE id = :id");
         $stmt->execute(['id' => $id]);
-        return $stmt->fetch() ?: null;
+        $result = $stmt->fetch();
+        
+        if ($result && isset($result['food_types'])) {
+            // Convert JSON string back to PHP array
+            $result['food_types'] = json_decode($result['food_types'], true) ?: [];
+        }
+        
+        return $result ?: null;
     }
 
     public function create(array $data): int|false
     {
-        // Convert PHP array to PostgreSQL array format
+        // Convert PHP array to JSON string
         if (isset($data['food_types']) && is_array($data['food_types'])) {
-            $data['food_types'] = '{' . implode(',', array_map(function($type) {
-                return '"' . str_replace('"', '\"', $type) . '"';
-            }, $data['food_types'])) . '}';
+            $data['food_types'] = json_encode($data['food_types']);
         } else {
-            $data['food_types'] = '{}'; // Empty PostgreSQL array
+            $data['food_types'] = json_encode([]); // Empty JSON array
         }
         
         $sql = "INSERT INTO vendor
@@ -42,34 +57,27 @@ class Vendor
                 (:email, :password, :name, :phone, :address, :food_types, :rating, :image)";
         $stmt = $this->db->prepare($sql);
 
-        $result =  $stmt->execute([
+        $result = $stmt->execute([
             'email'       => $data['email'],            
             'password'    => password_hash($data['password'], PASSWORD_DEFAULT),
             'name'        => $data['name'],
             'phone'       => $data['phone'] ?? null,
             'address'     => $data['address'] ?? null,
-            'food_types'  => $data['food_types'] ?? [],   // stored as TEXT[]
+            'food_types'  => $data['food_types'], // Now JSON string
             'rating'      => $data['rating'] ?? 0,
-            'image'   => $data['image'] ?? null,
+            'image'       => $data['image'] ?? null,
         ]);
 
         return $result ? (int)$this->db->lastInsertId() : false;
-        //Returning id specifically to update photos within the store controller
-
-        //Asking what id did it just inserted into the database
     }
 
-    public function imageUpdate(int $vendorId, array $data){
-        $sql = "UPDATE vendor
-            SET
-                image = :image
-            WHERE id = :id;
-        ";
-
+    public function imageUpdate(int $vendorId, array $data): bool
+    {
+        $sql = "UPDATE vendor SET image = :image WHERE id = :id";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([
-            'id'      => $vendorId,
-            'image'   => $data['image'],
+            'id'    => $vendorId,
+            'image' => $data['image'],
         ]);
     }
 
@@ -83,12 +91,16 @@ class Vendor
         
         foreach ($allowedFields as $field) {
             if (array_key_exists($field, $data)) {
+                // Special handling for food_types array
+                if ($field === 'food_types' && is_array($data[$field])) {
+                    $params[$field] = json_encode($data[$field]);
+                } else {
+                    $params[$field] = $data[$field];
+                }
                 $fields[] = "$field = :$field";
-                $params[$field] = $data[$field];
             }
         }
         
-        // If no fields to update, return true
         if (empty($fields)) {
             return true;
         }
@@ -99,7 +111,8 @@ class Vendor
         return $stmt->execute($params);
     }
 
-    public function delete(int $id):bool{
+    public function delete(int $id): bool
+    {
         $stmt = $this->db->prepare("DELETE FROM vendor WHERE id = :id");
         return $stmt->execute(['id' => $id]);
     }

@@ -28,6 +28,7 @@ use App\Controllers\Admin\AdminSettingsController;
 
 // Customer Controllers
 use App\Controllers\Customer\CustomerAuthController;
+use App\Controllers\Customer\CustomerOrderController;
 
 CorsMiddleware::handle();
 
@@ -59,6 +60,14 @@ $router->get('/api/v1/auth/profile', [$customerAuth, 'profile'], [CustomerMiddle
 $router->put('/api/v1/auth/profile', [$customerAuth, 'updateProfile'], [CustomerMiddleware::class, 'check']);
 $router->post('/api/v1/auth/profile/image', [$customerAuth, 'updateCustomerProfilePicture'], [CustomerMiddleware::class, 'check']);
 
+// ─────── Customer Order Routes ───────
+$customerOrder = new CustomerOrderController();
+
+// Protected customer order routes (all require customer authentication)
+$router->post('/api/v1/orders', [$customerOrder, 'store'], [CustomerMiddleware::class, 'check']);
+$router->get('/api/v1/orders', [$customerOrder, 'index'], [CustomerMiddleware::class, 'check']);
+$router->get('/api/v1/orders/{id}', [$customerOrder, 'show'], [CustomerMiddleware::class, 'check']);
+$router->delete('/api/v1/orders/{id}', [$customerOrder, 'cancel'], [CustomerMiddleware::class, 'check']);
 
 // ─────── Admin Auth ───────
 $adminAuth = new AdminAuthController();
@@ -77,7 +86,7 @@ $router->post('/api/admin/vendors', [$vendorCtrl, 'store'], [AdminMiddleware::cl
 $router->get('/api/admin/vendors/{id}', [$vendorCtrl, 'show'], [AdminMiddleware::class, 'check']);
 $router->post('/api/admin/vendors/{id}', [$vendorCtrl, 'updateVendorImage'], [AdminMiddleware::class, 'check']);
 $router->put('/api/admin/vendors/{id}', [$vendorCtrl, 'update'], [AdminMiddleware::class, 'check']);
-$router->delete('/api/admin/vendors//delete/{id}', [$vendorCtrl, 'delete'], [AdminMiddleware::class, 'check']);
+$router->delete('/api/admin/vendors/delete/{id}', [$vendorCtrl, 'delete'], [AdminMiddleware::class, 'check']);
 
 // ─────── Food CRUD ───────
 $foodCtrl = new AdminFoodController();
@@ -87,6 +96,10 @@ $router->post('/api/admin/foods/image/{id}', [$foodCtrl, 'updateFoodImage'], [Ad
 $router->get('/api/admin/foods/{id}', [$foodCtrl, 'show'], [AdminMiddleware::class, 'check']);
 $router->put('/api/admin/foods/{id}', [$foodCtrl, 'update'], [AdminMiddleware::class, 'check']); 
 $router->delete('/api/admin/foods/{id}', [$foodCtrl, 'delete'], [AdminMiddleware::class, 'check']);
+
+// ─────── Food Inventory Management ───────
+$router->get('/api/admin/foods/{id}/inventory', [$foodCtrl, 'getInventory'], [AdminMiddleware::class, 'check']);
+$router->patch('/api/admin/foods/{id}/inventory/adjust', [$foodCtrl, 'adjustInventory'], [AdminMiddleware::class, 'check']);
 
 // ─────── Order Management ───────
 $orderCtrl = new AdminOrderController();
