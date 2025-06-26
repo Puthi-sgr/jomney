@@ -29,6 +29,11 @@ use App\Controllers\Admin\AdminSettingsController;
 // Customer Controllers
 use App\Controllers\Customer\CustomerAuthController;
 use App\Controllers\Customer\CustomerOrderController;
+use App\Controllers\Customer\CustomerPaymentController;
+
+
+// Public Controllers
+use App\Controllers\Public\PublicController;
 
 CorsMiddleware::handle();
 
@@ -46,40 +51,81 @@ $router->get('/', function (){
         echo "This is a public's homepage";
     });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ─────── PUBLIC ENDPOINTS (No Authentication Required) ───────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+$publicCtrl = new PublicController();
 
-// ─────── Customer Authentication Routes ───────
+// Main application initial data
+$router->get('/api/public/vendors', [$publicCtrl, 'getAllVendors']);
+$router->get('/api/public/foods', [$publicCtrl, 'getAllFoods']);
+
+// Vendor details with food list
+$router->get('/api/public/vendors/{id}', [$publicCtrl, 'getVendorDetails']);
+
+// Individual food details
+$router->get('/api/public/foods/{id}', [$publicCtrl, 'getFoodDetails']);
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ─────── CUSTOMER ROUTES ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─────── Authentication & Profile Management ───────
 $customerAuth = new CustomerAuthController();
 
-// Public customer routes
+// Public authentication routes
 $router->post('/api/v1/auth/register', [$customerAuth, 'register']);
 $router->post('/api/v1/auth/login', [$customerAuth, 'login']);
 
-// Protected customer routes
+// Protected profile routes
 $router->post('/api/v1/auth/logout', [$customerAuth, 'logout'], [CustomerMiddleware::class, 'check']);
 $router->get('/api/v1/auth/profile', [$customerAuth, 'profile'], [CustomerMiddleware::class, 'check']);
 $router->put('/api/v1/auth/profile', [$customerAuth, 'updateProfile'], [CustomerMiddleware::class, 'check']);
 $router->post('/api/v1/auth/profile/image', [$customerAuth, 'updateCustomerProfilePicture'], [CustomerMiddleware::class, 'check']);
 
-// ─────── Customer Order Routes ───────
+// ─────── Order Management ───────
+
 $customerOrder = new CustomerOrderController();
 
-// Protected customer order routes (all require customer authentication)
 $router->post('/api/v1/orders', [$customerOrder, 'store'], [CustomerMiddleware::class, 'check']);
 $router->get('/api/v1/orders', [$customerOrder, 'index'], [CustomerMiddleware::class, 'check']);
 $router->get('/api/v1/orders/{id}', [$customerOrder, 'show'], [CustomerMiddleware::class, 'check']);
 $router->delete('/api/v1/orders/{id}', [$customerOrder, 'cancel'], [CustomerMiddleware::class, 'check']);
 
-// ─────── Admin Auth ───────
+
+// ─────── Payment Management ───────
+
+$customerPayment = new CustomerPaymentController();
+
+// Payment Methods Management
+$router->get('/api/v1/payment-methods', [$customerPayment, 'getPaymentMethods'], [CustomerMiddleware::class, 'check']);
+$router->post('/api/v1/payment-methods', [$customerPayment, 'addPaymentMethod'], [CustomerMiddleware::class, 'check']);
+$router->delete('/api/v1/payment-methods/{id}', [$customerPayment, 'removePaymentMethod'], [CustomerMiddleware::class, 'check']);
+
+// Payment Processing
+$router->post('/api/v1/orders/{orderid}/payment', [$customerPayment, 'processPayment'], [CustomerMiddleware::class, 'check']);
+
+
+// Payment History
+$router->get('/api/v1/payments', [$customerPayment, 'getPaymentHistory'], [CustomerMiddleware::class, 'check']);
+$router->get('/api/v1/payments/{id}', [$customerPayment, 'getPayment'], [CustomerMiddleware::class, 'check']);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ─────── ADMIN ROUTES ────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─────── Authentication & Profile ───────
 $adminAuth = new AdminAuthController();
-$router->post('/api/admin/login',  [$adminAuth, 'login']);
+$router->post('/api/admin/login', [$adminAuth, 'login']);
 $router->post('/api/admin/logout', [$adminAuth, 'logout'], null);
 $router->get('/api/admin/user',    [$adminAuth, 'user'], [AdminMiddleware::class, 'check']);
 
-// ─────── Dashboard Overview ───────
+// ─────── Dashboard & Statistics ───────
 $statsCtrl = new AdminStatsController();
 $router->get('/api/admin/stats', [$statsCtrl, 'index'], [AdminMiddleware::class, 'check']);
 
-// ─────── Vendor CRUD ───────
+// ─────── Vendor Management ───────
 $vendorCtrl = new AdminVendorController();
 $router->get('/api/admin/vendors', [$vendorCtrl, 'index'], [AdminMiddleware::class, 'check']);
 $router->post('/api/admin/vendors', [$vendorCtrl, 'store'], [AdminMiddleware::class, 'check']);
@@ -88,7 +134,7 @@ $router->post('/api/admin/vendors/{id}', [$vendorCtrl, 'updateVendorImage'], [Ad
 $router->put('/api/admin/vendors/{id}', [$vendorCtrl, 'update'], [AdminMiddleware::class, 'check']);
 $router->delete('/api/admin/vendors/delete/{id}', [$vendorCtrl, 'delete'], [AdminMiddleware::class, 'check']);
 
-// ─────── Food CRUD ───────
+// ─────── Food Management ───────
 $foodCtrl = new AdminFoodController();
 $router->get('/api/admin/foods', [$foodCtrl, 'index'], [AdminMiddleware::class, 'check']);
 $router->post('/api/admin/foods', [$foodCtrl, 'store'], [AdminMiddleware::class, 'check']);
@@ -97,7 +143,7 @@ $router->get('/api/admin/foods/{id}', [$foodCtrl, 'show'], [AdminMiddleware::cla
 $router->put('/api/admin/foods/{id}', [$foodCtrl, 'update'], [AdminMiddleware::class, 'check']); 
 $router->delete('/api/admin/foods/{id}', [$foodCtrl, 'delete'], [AdminMiddleware::class, 'check']);
 
-// ─────── Food Inventory Management ───────
+// ─────── Inventory Management ───────
 $router->get('/api/admin/foods/{id}/inventory', [$foodCtrl, 'getInventory'], [AdminMiddleware::class, 'check']);
 $router->patch('/api/admin/foods/{id}/inventory/adjust', [$foodCtrl, 'adjustInventory'], [AdminMiddleware::class, 'check']);
 
@@ -121,14 +167,13 @@ $paymentCtrl = new AdminPaymentController();
 $router->get('/api/admin/payments', [$paymentCtrl, 'index'], [AdminMiddleware::class, 'check']);
 $router->get('/api/admin/payments/{id}', [$paymentCtrl, 'show'], [AdminMiddleware::class, 'check']);
 
-// ─────── Settings (Order Statuses) ───────
+// ─────── System Settings ───────
 $settingsCtrl = new AdminSettingsController();
 $router->get('/api/admin/order-statuses', [$settingsCtrl, 'allStatuses'], [AdminMiddleware::class, 'check']);
 $router->post('/api/admin/order-statuses', [$settingsCtrl, 'createStatus'], [AdminMiddleware::class, 'check']);
 $router->get('/api/admin/order-statuses/{key}', [$settingsCtrl, 'getStatus'], [AdminMiddleware::class, 'check']);
 $router->put('/api/admin/order-statuses/{key}', [$settingsCtrl, 'updateStatus'], [AdminMiddleware::class, 'check']);
 $router->delete('/api/admin/order-statuses/{key}', [$settingsCtrl, 'deleteStatus'], [AdminMiddleware::class, 'check']);
-
 /* ------------------AUTHs---------------------------------- */
 
 

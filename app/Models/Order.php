@@ -125,9 +125,8 @@ class Order{
             'customer_id' => $customerId
         ]);
         
-        return $stmt->fetch() ?: null;
+        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
     }
-
     
     public function getOrderHistoryByPage(int $customerId, int $page = 1){
         //The point is to calculate only the necessary order result

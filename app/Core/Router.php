@@ -6,7 +6,7 @@ use App\Core\Response;
 class Router{
     protected array $routes = [];
 
-    public function get(string $uri, callable $action, $middleware = null): void{
+    public function get(string $uri, callable|array $action, $middleware = null): void{
         $this->routes['GET'][$uri] = ['action' => $action, 'middleware' => $middleware];
         //   'GET' => [
         // '/restaurants' => function() { return "List of restaurants"; },
@@ -15,7 +15,7 @@ class Router{
         //]
     }
 
-    public function post(string $uri, callable $action, $middleware = null):void{
+    public function post(string $uri, callable|array $action, $middleware = null):void{
         $this->routes['POST'][$uri] = ['action' => $action, 'middleware' => $middleware]; 
     }
 
