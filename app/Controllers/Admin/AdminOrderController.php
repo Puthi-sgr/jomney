@@ -34,7 +34,32 @@ class AdminOrderController
     {
         // For MVP: return all orders
         $orders = $this->orderModel->all(); 
-        Response::success('All orders', ['orders' => $orders], 200);
+        $allOrders = [];
+
+        foreach($orders as $order) {
+            $customerId = $order['customer_id'];
+            $order['customer'] = $this->customerModel->find($customerId);
+
+            unset($order['customername']);
+            unset($order['customer_id']);
+            unset($order['customer']['password']);
+            unset($order['customer']['created_at']);
+            unset($order['customer']['updated_at']);
+
+        
+            $allOrders[] = $order;
+        }
+
+
+        if(!$orders) {
+            Response::error('No orders found', [], 404);
+            return;
+        }
+
+
+        Response::success('All orders', [
+            'orders' => $allOrders
+        ], 200);
         return;
     }
     
@@ -44,15 +69,19 @@ class AdminOrderController
      */
     public function show(int $orderId): void
     {
-        $order = $this->orderModel->find($orderId);
+        $order = $this->orderModel->getOrderWithFoodItems($orderId);
+        unset($order['customer_id']);
+        unset($order['status_id']);
+        unset($order['status_key']);
+        unset($order['status_label']);
         if (!$order) {
             Response::error('Order not found', [], 404);
             return;
         }
 
-        $foodItems = $this->orderModel->getOrderWithFoodItems($orderId);
+   
 
-         Response::success('Order', ['foodItems' => $foodItems], 200);
+        Response::success('Order', ['order' => $order], 200);
         return;
     }
 

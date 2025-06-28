@@ -5,6 +5,9 @@ namespace App\Models;
 use App\Core\Database;
 use App\Models\Inventory;
 use App\Models\FoodOrder;
+use App\Models\OrderStatus;
+use App\Models\Customer;
+
 use App\Exceptions\OutOfStockException;
 use PDO;
 use Exception;
@@ -14,22 +17,31 @@ class Order{
 
     private Inventory $inventoryModel;
     private FoodOrder $foodOrderModel;
+    private Customer $customerModel;
+    private OrderStatus $statusModel;
     public function __construct(){
         //Get a PDO connect from a database wrapper
         $this->db = (new Database())->getConnection();
         $this->inventoryModel = new Inventory();
         $this->foodOrderModel = new FoodOrder();
+        $this->customerModel  = new Customer();
+        $this->statusModel = new OrderStatus();
     }
 
     public function all(): array {
+
         $stmt = $this->db->query("SELECT  
             o.*, 
-            c.name as customerName,
-            os.label AS statusLabel
+            c.name AS customerName,
+          
+            os.label AS statusLabel  
             FROM orders o
             JOIN order_statuses os ON os.id = o.status_id
             JOIN customer c on o.customer_id = c.id
-            ");
+
+            ");        
+            
+        $stmt->execute();        
         $orders = $stmt->fetchAll();
         return $orders;
     }
@@ -37,23 +49,30 @@ class Order{
     public function getOrderWithFoodItems(int $orderId): ?array
     {
         $order = $this->find($orderId);
+        $status = $this->statusModel->findByKey($order['status_key']);
+        $customer = $this->customerModel->find($order['customer_id']);
+        $order['status'] = $status;
+        $order['customer'] = $customer;
         if (!$order) {
             return null;
         }
 
-        $sql = "SELECT fo.*, f.name, f.image
+        $sql = "SELECT 
+            fo.*, 
+            f.name, 
+            f.image
             FROM food_order fo
             JOIN food f ON fo.food_id = f.id
             WHERE fo.order_id = :order_id";
-
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['order_id' => $orderId]);
 
         $foodItems = $stmt->fetchAll();
+        
+        $order['food_detail'] = $foodItems;
 
-        return $foodItems;     
+        return $order;     
     }
-
 
     /**
      * Get food price - ADDED MISSING METHOD
@@ -97,12 +116,10 @@ class Order{
             //now we have access to two additional columns
             "SELECT o.*, 
             os.key AS status_key, 
-            os.label AS status_label,
-            c.name AS customer_name
-             FROM orders o
-             JOIN order_statuses os ON o.status_id = os.id
-             JOIN customer c ON o.customer_id = c.id
-             WHERE o.id = :id"
+            os.label AS status_label
+            FROM orders o
+            JOIN order_statuses os ON o.status_id = os.id
+            WHERE o.id = :id"
         );
         $stmt->execute(['id' => $orderId]);
         return $stmt->fetch() ?: null;

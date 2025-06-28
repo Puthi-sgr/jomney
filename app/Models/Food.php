@@ -55,7 +55,12 @@ class Food
     public function allByVendor(int $vendorId): array
     {
         $stmt = $this->db->prepare(
-            "SELECT * FROM food WHERE vendor_id = :vendor_id ORDER BY name"
+            "SELECT f.*,
+                i.qty_available AS qty_available
+            FROM food f
+            JOIN inventory i ON f.id = i.food_id
+            WHERE vendor_id = :vendor_id 
+            ORDER BY name"
         );
         $stmt->execute(['vendor_id' => $vendorId]);
         return $stmt->fetchAll();

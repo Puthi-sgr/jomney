@@ -109,6 +109,17 @@ class Customer{
         return $stmt->execute($params);
     }
 
+    public function updateStripeCustomerId(int $customerId, string $stripeCustomerId): bool
+    {
+        $sql = "UPDATE customers SET stripe_customer_id = :stripe_customer_id WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            'stripe_customer_id' => $stripeCustomerId,
+            'id' => $customerId
+        ]);
+    }
+
+    
     public function delete(int $customerId):bool{
         $sql = "DELETE FROM customer WHERE id = :id";
         $stmt = $this->db->prepare($sql);

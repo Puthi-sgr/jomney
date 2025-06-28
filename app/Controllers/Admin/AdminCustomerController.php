@@ -23,6 +23,10 @@ class AdminCustomerController
     public function index(): void
     {
         $customers = $this->customerModel->all();
+        if (!$customers) {
+            Response::error('No customers found', [], 404);
+            return;
+        }
         Response::success('Customers list', $customers);
     }
 

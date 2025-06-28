@@ -150,7 +150,7 @@ $router->patch('/api/admin/foods/{id}/inventory/adjust', [$foodCtrl, 'adjustInve
 // ─────── Order Management ───────
 $orderCtrl = new AdminOrderController();
 $router->get('/api/admin/orders', [$orderCtrl, 'index'], [AdminMiddleware::class, 'check']);
-$router->get('/api/admin/orders/{id}', [$orderCtrl, 'show'], [AdminMiddleware::class, 'check']);
+$router->get('/api/admin/orders/{orderId}', [$orderCtrl, 'show'], [AdminMiddleware::class, 'check']);
 $router->patch('/api/admin/orders/{id}/status', [$orderCtrl, 'updateStatus'], [AdminMiddleware::class, 'check']);
 
 // ─────── Customer Management ───────

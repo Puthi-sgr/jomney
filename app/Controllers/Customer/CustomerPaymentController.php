@@ -5,20 +5,57 @@ use App\Core\Response;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Order;
+use App\Models\Customer;
+use Stripe\Stripe;
+use Stripe\Customer as StripeCustomer;
+use Stripe\PaymentMethod as StripePaymentMethod;
+use Stripe\SetupIntent;
+use Exception;
 
 class CustomerPaymentController
 {
     private Payment $paymentModel;
     private PaymentMethod $paymentMethodModel;
     private Order $orderModel;
+    private Customer $customerModel;
 
     public function __construct()
     {
+        Stripe::setApiKey($_ENV['STRIPE_SECRET_KEY']);
         $this->paymentModel = new Payment();
         $this->paymentMethodModel = new PaymentMethod();
         $this->orderModel = new Order();
+        $this->customerModel = new Customer();
     }
 
+
+        /**
+     * Create a SetupIntent for adding payment methods
+     */
+    public function createSetupIntent(): void
+    {
+        $customerId = (int) ($_SERVER['user_id'] ?? 0);
+        
+        try {
+            // Get or create Stripe customer
+            $stripeCustomerId = $this->getOrCreateStripeCustomer($customerId);
+            
+            $setupIntent = SetupIntent::create([
+                'customer' => $stripeCustomerId,
+                'payment_method_types' => ['card'],
+                'usage' => 'off_session'
+            ]);
+
+            Response::success('Setup intent created', [
+                'client_secret' => $setupIntent->client_secret,
+                'setup_intent_id' => $setupIntent->id
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Setup intent creation failed: " . $e->getMessage());
+            Response::error("Failed to create setup intent", [], 500);
+        }
+    }
 
     /**
      * GET /api/v1/payment-methods
@@ -31,6 +68,64 @@ class CustomerPaymentController
         $paymentMethods = $this->paymentMethodModel->allByCustomer($customerId);
         Response::success('Payment methods retrieved', $paymentMethods);
     }
+
+    /**
+     * Save payment method after SetupIntent succeeds
+     */
+    public function savePaymentMethod(): void
+    {
+        $customerId = (int) ($_SERVER['user_id'] ?? 0);
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        
+        $paymentMethodId = $body['payment_method_id'] ?? '';
+        
+        if (empty($paymentMethodId)) {
+            Response::error('Payment method ID is required', [], 422);
+            return;
+        }
+
+        try {
+            // Retrieve the payment method from Stripe
+            $stripePaymentMethod = StripePaymentMethod::retrieve($paymentMethodId);
+            
+            // Get or create Stripe customer
+            $stripeCustomerId = $this->getOrCreateStripeCustomer($customerId);
+            
+            // Attach payment method to customer if not already attached
+            if (!$stripePaymentMethod->customer) {
+                $stripePaymentMethod->attach(['customer' => $stripeCustomerId]);
+            }
+
+            // Save to database
+            $data = [
+                'customer_id' => $customerId,
+                'stripe_pm_id' => $stripePaymentMethod->id,
+                'type' => $stripePaymentMethod->type,
+                'card_brand' => $stripePaymentMethod->card->brand ?? null,
+                'card_last4' => $stripePaymentMethod->card->last4 ?? null,
+                'exp_month' => $stripePaymentMethod->card->exp_month ?? null,
+                'exp_year' => $stripePaymentMethod->card->exp_year ?? null,
+            ];
+
+            $paymentMethodDbId = $this->paymentMethodModel->create($data);
+            
+            if (!$paymentMethodDbId) {
+                Response::error('Failed to save payment method', [], 500);
+                return;
+            }
+
+            Response::success('Payment method saved successfully', [
+                'payment_method_id' => $paymentMethodDbId,
+                'card_brand' => $data['card_brand'],
+                'card_last4' => $data['card_last4']
+            ], 201);
+
+        } catch (Exception $e) {
+            error_log("Save payment method failed: " . $e->getMessage());
+            Response::error('Failed to save payment method: ' . $e->getMessage(), [], 500);
+        }
+    }
+
 
      /**
      * POST /api/v1/payment-methods
@@ -68,6 +163,38 @@ class CustomerPaymentController
         Response::success('Payment method added successfully', [
             'payment_method_id' => $paymentMethodId
         ], 201);
+    }
+
+    /**
+     * DELETE /api/v1/payment-methods/{id}
+     */
+    public function removeStripePaymentMethod(int $id): void
+    {
+        $customerId = (int) ($_SERVER['user_id'] ?? 0);
+        
+        $paymentMethod = $this->paymentMethodModel->findByCustomerAndId($customerId, $id);
+        if (!$paymentMethod) {
+            Response::error('Payment method not found', [], 404);
+            return;
+        }
+
+        try {
+            // Detach from Stripe
+            $stripePaymentMethod = StripePaymentMethod::retrieve($paymentMethod['stripe_pm_id']);
+            $stripePaymentMethod->detach();
+
+            // Remove from database
+            $result = $this->paymentMethodModel->delete($id);
+            if ($result) {
+                Response::success('Payment method removed successfully');
+            } else {
+                Response::error('Failed to remove payment method', [], 500);
+            }
+
+        } catch (Exception $e) {
+            error_log("Remove payment method failed: " . $e->getMessage());
+            Response::error('Failed to remove payment method', [], 500);
+        }
     }
 
      /**

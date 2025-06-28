@@ -5,6 +5,8 @@ namespace App\Controllers;
 use App\Core\Response;
 use App\Core\JWTService;
 use App\Models\Payment;
+use App\Models\PaymentMethod;
+use App\Models\Order;
 use Stripe\Stripe;
 use Stripe\PaymentIntent;
 use Stripe\Webhook;
@@ -12,55 +14,130 @@ use Exception;
 
 
 class PaymentController{
+
     private Payment $paymentModel;
+    private PaymentMethod $paymentMethodModel;
+    private Order $orderModel;
 
-    public function __construct(){
+    public function __construct()
+    {
         Stripe::setApiKey($_ENV['STRIPE_SECRET_KEY']);
-
         $this->paymentModel = new Payment();
+        $this->paymentMethodModel = new PaymentMethod();
+        $this->orderModel = new Order();
     }
 
-    public function create(): void{
+     /**
+     * Create a PaymentIntent for an order
+     * {
+            "order_id": 123,
+            "payment_method_id": 456
+        }
+     */
+    public function createPaymentIntent(): void
+    {
         $data = json_decode(file_get_contents('php://input'), true);
-        //grabs the data
+        
         $orderId = (int)($data['order_id'] ?? 0);
-        $amount = (float)($data['amount'] ?? 0.0);
-        $currency = $data['currency'] ?? 'usd';
+        $paymentMethodId = (int)($data['payment_method_id'] ?? 0);
 
-        if($orderId <= 0 || $amount <= 0){
-            Response::error("Invalid order or amount", [], 400);
+        if ($orderId <= 0) {
+            Response::error("Invalid order ID", [], 400);
             return;
         }
-        
-        //Create strip payment part
-        try{
-            $pi = PaymentIntent::create([
-                'amount' => (int)($amount * 100),
-                'currency' => $currency,
-                'metadata' => ['order_id' => $orderId]
-            ]);
-            
 
-            if($pi->status === 'succeeded' || $pi->status === 'requires_confirmation' || $pi->status === 'requires_action' ||  $pi->status === 'requires_payment_method'){
-                //payment success
-                $this->paymentModel->create($orderId, $pi->id, $amount, $currency, 'pending');
-                Response::success(
-                    "Payment success", 
-                    ['payment_intent' => $pi, '
-                    client_secret' => $pi->client_secret]);
-                    
-            }else if($pi->status === 'payment_failed' || $pi->status === 'canceled'){
-                //payment failed
-                $this->paymentModel->create($orderId, $pi->id, $amount, $currency, 'failed');
-                Response::error("Payment failed", [], 400);
-            }else{
-                error_log("Unexpected status received: " . $pi->status); 
-                Response::error("Unexpected payment status", [], 400);
+        try {
+            // Get order details
+            $order = $this->orderModel->find($orderId);
+            if (!$order) {
+                Response::error("Order not found", [], 404);
+                return;
             }
-        }catch(Exception $e){
-            Response::error("Payment creation failed", [], 500);
-        }
 
+            $amount = (float)$order['total_amount'];
+            if ($amount <= 0) {
+                Response::error("Invalid order amount", [], 400);
+                return;
+            }
+
+            // Get payment method if provided
+            $stripePaymentMethodId = null;
+            //if more than 0 it means method id is provided
+            if ($paymentMethodId > 0) {
+                //Check the method in the database
+                $paymentMethod = $this->paymentMethodModel->find($paymentMethodId);
+
+                if ($paymentMethod) {
+                    $stripePaymentMethodId = $paymentMethod['stripe_pm_id'];
+                    //the stripe payment method id will be the same the method id we stored in the database
+                }
+            }
+
+            // Create PaymentIntent, u intent to pay it**
+            $paymentIntentData = [
+                'amount' => (int)($amount * 100), // Convert to cents
+                'currency' => 'usd',
+                'metadata' => [
+                    'order_id' => $orderId,
+                    'payment_method_id' => $paymentMethodId
+                ],
+                'automatic_payment_methods' => [
+                    'enabled' => true,
+                ],
+            ];
+
+            // If we have a payment method, attach it
+            if ($stripePaymentMethodId) {
+                $paymentIntentData['payment_method'] = $stripePaymentMethodId;
+                $paymentIntentData['confirmation_method'] = 'manual';
+                $paymentIntentData['confirm'] = true;
+            }
+
+            $paymentIntent = PaymentIntent::create($paymentIntentData);
+
+            // Create payment record in database
+            $paymentData = [
+                'order_id' => $orderId,
+                'payment_method_id' => $paymentMethodId ?: null,
+                'stripe_payment_id' => $paymentIntent->id,
+                'amount' => $amount,
+                'currency' => 'usd',
+                'status' => $this->mapStripeStatus($paymentIntent->status)
+            ];
+
+            $paymentId = $this->paymentModel->create($paymentData);
+
+            if (!$paymentId) {
+                Response::error("Failed to create payment record", [], 500);
+                return;
+            }
+
+            Response::success("Payment intent created", [
+                'payment_intent_id' => $paymentIntent->id,
+                'client_secret' => $paymentIntent->client_secret,
+                'status' => $paymentIntent->status,
+                'payment_id' => $paymentId
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Payment creation failed: " . $e->getMessage());
+            Response::error("Payment creation failed: " . $e->getMessage(), [], 500);
+        }
+    }
+
+    /**
+     * Map Stripe status to our internal status
+     */
+    private function mapStripeStatus(string $stripeStatus): string
+    {
+        return match($stripeStatus) {
+            'requires_payment_method', 'requires_confirmation', 'requires_action' => 'pending',
+            'processing' => 'processing',
+            'succeeded' => 'succeeded',
+            'canceled' => 'canceled',
+            'payment_failed' => 'failed',
+            default => 'pending'
+        };
     }
 
     public function webhook():void {

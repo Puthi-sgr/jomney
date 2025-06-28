@@ -49,8 +49,31 @@ class AdminFoodController{
         //    'category' => 'thai'
         //]
         $foods = $this->foodModel->all($filters);
-        Response::success('Foods list', $foods);
-        return;
+
+        if(!$foods) {
+            Response::error('Food not found', [], 404);
+            return;
+        }
+
+        $allFoods = [];
+
+        foreach($foods as $food) {
+            $vendorId = $food['vendor_id'];
+            $food['vendor'] = $this->vendorModel->find($vendorId);
+
+            unset(
+             $food['vendor_id'], 
+             $food['vendor']['password'],
+             $food['created_at'],
+             $food['updated_at'],
+             $food['vendor']['created_at'],
+             $food['vendor']['updated_at']
+            );
+            
+            $allFoods[] = $food;
+        }
+
+        Response::success('Foods list', ['foods' => $allFoods]);
     }
     /**
      * GET /api/admin/foods/{id}
@@ -58,11 +81,30 @@ class AdminFoodController{
     public function show(int $id): void
     {
         $food = $this->foodModel->find($id);
-        if (!$food) {
+
+        if(!$food) {
             Response::error('Food item not found', [], 404);
             return;
         }
-        Response::success('Food details',[$food], 200);
+
+        $vendor = $this->vendorModel->find($food['vendor_id']);
+
+        if(!$vendor) {
+            Response::error('Vendor not found', [], 404);
+            return;
+        }
+        $food['vendor'] = $vendor;
+
+         unset(
+             $food['vendor_id'], 
+             $food['vendor']['password'],
+             $food['created_at'],
+             $food['updated_at'],
+             $food['vendor']['created_at'],
+             $food['vendor']['updated_at']
+         );
+       
+        Response::success('Food details',["food" => $food], 200);
     }
 
      /**

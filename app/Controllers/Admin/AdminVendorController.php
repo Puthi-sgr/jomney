@@ -5,16 +5,19 @@ use App\Core\Response;
 use App\Traits\ValidationTrait;
 use App\Models\Vendor;
 use App\Core\CloudinaryService;
+use App\Models\Food;
 
 class AdminVendorController{
 
     use ValidationTrait;
 
     private Vendor $vendorModel;
+    private Food $foodModel;
     private CloudinaryService $cloudinaryService;
 
     public function __construct(){
         $this->vendorModel = new Vendor();
+        $this->foodModel = new Food();
         $this->cloudinaryService = new CloudinaryService();
     }
     /**
@@ -24,7 +27,9 @@ class AdminVendorController{
     public function index(): void
     {
         $vendors = $this->vendorModel->all();
-        Response::success('Vendors list', $vendors);
+        Response::success('Vendors list', [
+            "vendors" => $vendors
+        ]);
         return;
     }
 
@@ -35,11 +40,19 @@ class AdminVendorController{
     public function show(int $id): void
     {
         $vendor = $this->vendorModel->find($id);
+        $food = $this->foodModel->allByVendor($vendor['id']);
+        unset($vendor['password']);
+        unset($food['vendor_id']);
         if (!$vendor) {
-            Response::error('Vendor not found', [], 404);
+            Response::error('Vendor not found', [
+              
+            ], 404); 
             return;
         }
-        Response::success('Vendor details', $vendor);
+        Response::success('Vendor details',  [
+                "vendor" => $vendor,
+                "foods" => $food
+            ]);
         return;
     }
 
