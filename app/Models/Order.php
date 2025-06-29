@@ -21,7 +21,7 @@ class Order{
     private OrderStatus $statusModel;
     public function __construct(){
         //Get a PDO connect from a database wrapper
-        $this->db = (new Database())->getConnection();
+         $this->db = Database::getConnection(); 
         $this->inventoryModel = new Inventory();
         $this->foodOrderModel = new FoodOrder();
         $this->customerModel  = new Customer();

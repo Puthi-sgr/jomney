@@ -10,7 +10,7 @@ class Customer{
     private PDO $db;
     
     public function __construct(){
-          $this->db = (new Database())->getConnection();
+           $this->db = Database::getConnection(); 
     }
 
     public function all():array{

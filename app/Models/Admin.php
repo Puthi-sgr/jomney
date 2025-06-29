@@ -9,7 +9,7 @@ class Admin
     private PDO $db;
     public function __construct()
     {
-        $this->db = (new Database())->getConnection();
+        $this->db = Database::getConnection(); 
     }
 
     public function find(int $id): ?array

@@ -11,7 +11,7 @@ class FoodOrder
     
     public function __construct()
     {
-        $this->db = (new Database())->getConnection();
+        $this->db = Database::getConnection(); 
     }
     public function create(int $orderId, int $foodId, float $price, float $quantity): bool
     {

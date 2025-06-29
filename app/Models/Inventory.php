@@ -12,7 +12,7 @@ class Inventory{
 
     public function __construct()
     {
-        $this->db = (new Database())->getConnection();
+        $this->db = Database::getConnection(); 
     }
 
     /* seed row when a food item is first created */

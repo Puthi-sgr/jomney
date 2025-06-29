@@ -10,7 +10,7 @@ class PaymentMethod
 
     public function __construct()
     {
-        $this->db = (new Database())->getConnection();
+         $this->db = Database::getConnection(); 
     }
 
     public function allByCustomer(int $customerId): array

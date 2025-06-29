@@ -4,13 +4,10 @@ require __DIR__."/../vendor/autoload.php";
 \App\Core\Config::load();
 
 try{
-    $pdo = new PDO(
-        "pgsql:host={$_ENV['DB_HOST']}; dbname={$_ENV['DB_NAME']}",
-        $_ENV['DB_USER'],
-        $_ENV["DB_PASSWORD"]
-    );
-    echo "Database connected successfully";
+    // Use the centralized Database class instead of direct PDO
+    $pdo = \App\Core\Database::getConnection();
+    echo "Database connected successfully with connection pooling";
     
-}catch(PDOException $e){
+}catch(Exception $e){
     die("Connection failed: " . $e->getMessage());
 }
