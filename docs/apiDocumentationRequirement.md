@@ -254,6 +254,37 @@
   - Response (JSON): `{ "success": true, "message": "Payment initiated successfully", "data": { "payment_id": "number", "order_id": "number", "amount": "number", "status": "string" } }`
 
 
+  - Response (JSON): `{ "success": true }` or `{ "error": "string" }`
+
+### Stripe Payment
+
+- `POST /api/v1/payment-methods/stripe/setup-intent` (Customer) - Create SetupIntent for adding payment methods
+
+  - Request (JSON): None
+  - Response (JSON): `{ "success": true, "message": "Setup intent created", "data": { "client_secret": "string", "setup_intent_id": "string" } }`
+
+- `POST /api/v1/payment-methods/stripe/save` (Customer) - Save payment method after SetupIntent succeeds
+
+  - Request (JSON): `{ "payment_method_id": "string" }`
+  - Response (JSON): `{ "success": true, "message": "Payment method saved successfully", "data": { "payment_method_id": "number", "card_brand": "string", "card_last4": "string" } }`
+
+- `GET /api/v1/payment-methods` (Customer) - Get all payment methods
+
+  - Request (JSON): None
+  - Response (JSON): `{ "success": true, "message": "Payment methods retrieved", "data": [{ "id": "number", "customer_id": "number", "stripe_pm_id": "string", "type": "string", "card_brand": "string", "card_last4": "string", "exp_month": "number", "exp_year": "number", "created_at": "string", "updated_at": "string" }] }`
+
+- `DELETE /api/v1/payment-methods/stripe/{id}` (Customer) - Remove Stripe payment method
+
+  - Request (JSON): None
+  - Response (JSON): `{ "success": true, "message": "Payment method removed successfully", "data": null }`
+
+- `POST /api/v1/orders/{orderid}/stripe-payment` (Customer) - Process payment with saved Stripe payment method
+  - Request (JSON): `{ "payment_method_id": "number" }`
+  - Response (JSON): 
+    - Success: `{ "success": true, "message": "Payment completed successfully", "data": { "payment_id": "number", "order_id": "number", "amount": "number", "status": "succeeded" } }`
+    - Requires Action: `{ "success": true, "message": "Payment requires additional authentication", "data": { "payment_id": "number", "order_id": "number", "requires_action": true, "payment_intent": { "id": "string", "client_secret": "string" }, "next_action": "object" } }`
+    - Processing: `{ "success": true, "message": "Payment is being processed", "data": { "payment_id": "number", "order_id": "number", "status": "processing" } }`
+
 <!-- #### Order Status Settings Endpoints
 
 - `GET /api/admin/order-statuses` (Admin) - List all order statuses

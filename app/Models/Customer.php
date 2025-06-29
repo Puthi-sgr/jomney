@@ -109,14 +109,15 @@ class Customer{
         return $stmt->execute($params);
     }
 
-    public function updateStripeCustomerId(int $customerId, string $stripeCustomerId): bool
+    public function updateStripeCustomerId(int $customerId, string $stripeCustomerId): string
     {
-        $sql = "UPDATE customers SET stripe_customer_id = :stripe_customer_id WHERE id = :id";
+        $sql = "UPDATE customer SET stripe_customer_id = :stripe_customer_id WHERE id = :id";
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([
+        $stmt->execute([
             'stripe_customer_id' => $stripeCustomerId,
             'id' => $customerId
         ]);
+        return $stripeCustomerId;
     }
 
     

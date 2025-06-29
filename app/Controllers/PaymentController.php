@@ -128,7 +128,7 @@ class PaymentController{
     /**
      * Map Stripe status to our internal status
      */
-    private function mapStripeStatus(string $stripeStatus): string
+    public function mapStripeStatus(string $stripeStatus): string
     {
         return match($stripeStatus) {
             'requires_payment_method', 'requires_confirmation', 'requires_action' => 'pending',

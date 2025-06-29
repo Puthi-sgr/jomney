@@ -98,14 +98,24 @@ $router->delete('/api/v1/orders/{id}', [$customerOrder, 'cancel'], [CustomerMidd
 
 $customerPayment = new CustomerPaymentController();
 
-// Payment Methods Management
+// Payment Methods Management (Stripe Only)
 $router->get('/api/v1/payment-methods', [$customerPayment, 'getPaymentMethods'], [CustomerMiddleware::class, 'check']);
-$router->post('/api/v1/payment-methods', [$customerPayment, 'addPaymentMethod'], [CustomerMiddleware::class, 'check']);
-$router->delete('/api/v1/payment-methods/{id}', [$customerPayment, 'removePaymentMethod'], [CustomerMiddleware::class, 'check']);
+// $router->post('/api/v1/payment-methods', [$customerPayment, 'addPaymentMethod'], [CustomerMiddleware::class, 'check']); // MOCK - COMMENTED OUT
+// $router->delete('/api/v1/payment-methods/{id}', [$customerPayment, 'removePaymentMethod'], [CustomerMiddleware::class, 'check']); // MOCK - COMMENTED OUT
 
-// Payment Processing
-$router->post('/api/v1/orders/{orderid}/payment', [$customerPayment, 'processPayment'], [CustomerMiddleware::class, 'check']);
+// Payment Processing (Stripe Only)
+// $router->post('/api/v1/orders/{orderid}/payment', [$customerPayment, 'processPayment'], [CustomerMiddleware::class, 'check']); // MOCK - COMMENTED OUT
 
+
+// Stripe Payment Methods Management
+$router->post('/api/v1/payment-methods/stripe/setup-intent', [$customerPayment, 'createSetupIntent'], [CustomerMiddleware::class, 'check']);
+$router->post('/api/v1/payment-methods/stripe/save', [$customerPayment, 'savePaymentMethod'], [CustomerMiddleware::class, 'check']);
+$router->delete('/api/v1/payment-methods/stripe/{id}', [$customerPayment, 'removeStripePaymentMethod'], [CustomerMiddleware::class, 'check']);
+
+$router->post('/api/v1/orders/{orderid}/stripe-payment', [$customerPayment, 'processStripePayment'], [CustomerMiddleware::class, 'check']);
+
+// Legacy Payment Processing
+// $router->post('/api/customer/payments/checkout', [$customerPayment, 'checkout'], [CustomerMiddleware::class, 'check']); // LEGACY - COMMENTED OUT
 
 // Payment History
 $router->get('/api/v1/payments', [$customerPayment, 'getPaymentHistory'], [CustomerMiddleware::class, 'check']);
