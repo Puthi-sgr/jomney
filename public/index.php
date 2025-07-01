@@ -35,6 +35,8 @@ use App\Controllers\Customer\CustomerPaymentController;
 // Public Controllers
 use App\Controllers\Public\PublicController;
 
+use App\Controllers\TestController;
+
 CorsMiddleware::handle();
 
 //.env
@@ -50,6 +52,14 @@ $router = new Router();
 $router->get('/', function (){
         echo "This is a public's homepage";
     });
+
+
+    // ═══════════════════════════════════════════════════════════════════════════
+// ─────── TESTING ROUTES (Development Only) ────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+$testController = new TestController();
+$router->get('/test/stripe-payment-method', [$testController, 'stripePaymentMethodTest']);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ─────── PUBLIC ENDPOINTS (No Authentication Required) ───────────────────────

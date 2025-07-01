@@ -15,24 +15,42 @@ class Database
     public static function getConnection(): PDO
     {
         if (self::$connection === null) {
-            $host = $_ENV['DB_HOST'] ?? 'db';
-            $db   = $_ENV['DB_NAME'] ?? 'food_delivery';
-            $user = $_ENV['DB_USER'] ?? 'food_user';
-            $pass = $_ENV['DB_PASS'] ?? 'secure_password'; 
+            // Check if we should use PgBouncer
+            $usePgBouncer = $_ENV['USE_PGBOUNCER'] === 'true';
+            
+            if ($usePgBouncer) {
+                $host = $_ENV['PGBOUNCER_HOST'] ?? 'pgbouncer';
+                $port = $_ENV['PGBOUNCER_PORT'] ?? '6432';
+            } else {
+                $host = $_ENV['DB_HOST'] ?? 'db';
+                $port = '5432';
+            }
+            
+            $dbname = $_ENV['DB_NAME'] ?? 'food_delivery';
+            $username = $_ENV['DB_USER'] ?? 'food_user';
+            $password = $_ENV['DB_PASS'] ?? 'secure_password';
 
-            $dsn = "pgsql:host=$host;dbname=$db;";
+            $dsn = "pgsql:host={$host};port={$port};dbname={$dbname}";
 
             try {
-                self::$connection = new PDO($dsn, $user, $pass, [
+                $options = [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_PERSISTENT => true, // Enable connection pooling
                     PDO::ATTR_EMULATE_PREPARES => false,
-                ]);
-                self::$connectionCount++;
-                error_log("Database connection established (Pool count: " . self::$connectionCount . ")");
+                ];
+
+                // Only use persistent connections when NOT using PgBouncer
+                // PgBouncer handles pooling, so we don't need PDO persistence
+                if (!$usePgBouncer) {
+                    $options[PDO::ATTR_PERSISTENT] = true;
+                }
+
+                self::$connection = new PDO($dsn, $username, $password, $options);
+                
+                error_log("Database connected via: " . ($usePgBouncer ? 'PgBouncer' : 'Direct'));
+                
             } catch (PDOException $e) {
-                error_log("DB connection failed: " . $e->getMessage());
+                error_log("Database connection failed: " . $e->getMessage());
                 throw new \Exception("Database connection failed");
             }
         }
