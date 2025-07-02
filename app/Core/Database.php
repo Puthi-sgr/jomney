@@ -36,7 +36,8 @@ class Database
                 $options = [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES => false,
+                    // KEY CHANGE: Use emulated prepares with PgBouncer
+                    PDO::ATTR_EMULATE_PREPARES => $usePgBouncer ? true : false,
                 ];
 
                 // Only use persistent connections when NOT using PgBouncer

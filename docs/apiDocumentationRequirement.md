@@ -151,22 +151,138 @@
 - `GET /api/public/vendors` (Public) - List all vendors
 
   - Request (JSON): None
-  - Response (JSON): `{ "success": true, "message": "All vendors retrieved", "data": [{ "id": "number", "name": "string", "phone": "string", "address": "string", "food_types": ["string"], "rating": "number", "image": "string" }] }`
+  - Response (JSON): 
+    ```json
+    {
+      "success": true,
+      "message": "All vendors retrieved",
+      "data": {
+        "vendors": [
+          {
+            "id": "number",
+            "name": "string",
+            "phone": "string",
+            "address": "string",
+            "food_types": ["string"],
+            "rating": "number",
+            "image": "string",
+            "foods": [
+              {
+                "id": "number",
+                "name": "string",
+                "description": "string",
+                "category": "string",
+                "price": "number",
+                "ready_time": "number",
+                "rating": "number",
+                "image": "string",
+                "qty_available": "number"
+              }
+            ]
+          }
+        ]
+      }
+    }
+    ```
 
 - `GET /api/public/foods` (Public) - List all foods
 
   - Request (JSON): None
-  - Response (JSON): `{ "success": true, "message": "All foods retrieved", "data": [{ "id": "number", "vendor_id": "number", "name": "string", "description": "string", "category": "string", "price": "number", "ready_time": "number", "rating": "number", "image": "string" }] }`
+  - Response (JSON): 
+    ```json
+    {
+      "success": true,
+      "message": "All foods retrieved",
+      "data": {
+        "foods": [
+          {
+            "id": "number",
+            "name": "string",
+            "description": "string",
+            "category": "string",
+            "price": "number",
+            "ready_time": "number",
+            "rating": "number",
+            "image": "string",
+            "qty_available": "number",
+            "vendor": {
+              "id": "number",
+              "name": "string",
+              "phone": "string",
+              "address": "string",
+              "food_types": ["string"],
+              "rating": "number",
+              "image": "string"
+            }
+          }
+        ]
+      }
+    }
+    ```
 
 - `GET /api/public/vendors/{id}` (Public) - Get vendor details with their food list
 
   - Request (JSON): None
-  - Response (JSON): `{ "success": true, "message": "Vendor details with foods", "data": { "vendor": { "id": "number", "name": "string", "phone": "string", "address": "string", "food_types": ["string"], "rating": "number", "image": "string" }, "foods": [{ "id": "number", "name": "string", "description": "string", "category": "string", "price": "number", "ready_time": "number", "rating": "number", "image": "string" }] } }`
+  - Response (JSON): 
+    ```json
+    {
+      "success": true,
+      "message": "Vendor details with foods",
+      "data": {
+        "vendor": {
+          "id": "number",
+          "name": "string",
+          "phone": "string",
+          "address": "string",
+          "food_types": ["string"],
+          "rating": "number",
+          "image": "string"
+        },
+        "foods": [
+          {
+            "id": "number",
+            "name": "string",
+            "description": "string",
+            "category": "string",
+            "price": "number",
+            "ready_time": "number",
+            "rating": "number",
+            "image": "string",
+            "qty_available": "number"
+          }
+        ]
+      }
+    }
+    ```
 
 - `GET /api/public/foods/{id}` (Public) - Get food details
   - Request (JSON): None
-  - Response (JSON): `{ "success": true, "message": "Food details", "data": { "id": "number", "vendor_id": "number", "name": "string", "description": "string", "category": "string", "price": "number", "ready_time": "number", "rating": "number", "image": "string" } }`
-  - ---------------Customer-------------------------------
+  - Response (JSON): 
+    ```json
+    {
+      "success": true,
+      "message": "Food details",
+      "data": {
+        "id": "number",
+        "name": "string",
+        "description": "string",
+        "category": "string",
+        "price": "number",
+        "ready_time": "number",
+        "rating": "number",
+        "image": "string",
+        "vendor": {
+          "id": "number",
+          "name": "string",
+          "phone": "string",
+          "address": "string",
+          "food_types": ["string"],
+          "rating": "number",
+          "image": "string"
+        }
+      }
+    }
+    ```
 
 ### Customer Auth
 
@@ -204,21 +320,159 @@
 - `POST /api/v1/orders` (Customer) - Create new order
 
   - Request (JSON): `{ "items": [{ "food_id": "number", "quantity": "number" }], "remarks": "string" }`
-  - Response (JSON): `{ "success": true, "message": "Order created", "data": { "orders": { "id": "number", "customer_id": "number", "status": "string", "total": "number", "items": [{ "food_id": "number", "quantity": "number", "price": "number" }] } } }`
+  - Response (JSON): 
+    ```json
+    {
+      "success": true,
+      "message": "Order created",
+      "data": {
+        "orders": {
+          "id": "number",
+          "customer_id": "number",
+          "status": { 
+            "id": "number",
+            "label": "string"
+          },
+          "total": "number",
+          "remarks": "string",
+          "created_at": "string",
+          "food_detail": [
+            {
+              "food_id": "number",
+              "name": "string",
+              "description": "string",
+              "category": "string",
+              "price": "number",
+              "quantity": "number",
+              "vendor": {
+                "id": "number",
+                "name": "string",
+                "phone": "string",
+                "address": "string",
+                "food_types": ["string"],
+                "rating": "number",
+                "image": "string"
+              }
+            }
+          ]
+        }
+      }
+    }
+    ```
 
 - `GET /api/v1/orders` (Customer) - Get order history
 
   - Request (JSON): None
-  - Response (JSON): `{ "success": true, "message": "Orders retrieved", "data": { "orders": [{ "id": "number", "status": "string", "total": "number", "created_at": "string" }] } }`
+  - Response (JSON): 
+    ```json
+    {
+      "success": true,
+      "message": "Orders retrieved",
+      "data": {
+        "customer": {
+          "id": "number",
+          "email": "string",
+          "name": "string",
+          "address": "string",
+          "phone": "string",
+          "location": "string",
+          "lat_lng": "string",
+          "image": "string"
+        },
+        "orders": [
+          {
+            "id": "number",
+            "status": {
+              "id": "number",
+              "label": "string"
+            },
+            "total": "number",
+            "remarks": "string",
+            "created_at": "string",
+            "food_detail": [
+              {
+                "food_id": "number",
+                "name": "string",
+                "description": "string",
+                "category": "string",
+                "price": "number",
+                "quantity": "number",
+                "vendor": {
+                  "id": "number",
+                  "name": "string",
+                  "phone": "string",
+                  "address": "string",
+                  "food_types": ["string"],
+                  "rating": "number",
+                  "image": "string"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+    ```
 
 - `GET /api/v1/orders/{id}` (Customer) - Get order details
 
   - Request (JSON): None
-  - Response (JSON): `{ "success": true, "message": "Order retrieved", "data": { "id": "number", "status": "string", "total": "number", "items": [{ "food_id": "number", "quantity": "number", "price": "number" }] } }`
+  - Response (JSON): 
+    ```json
+    {
+      "success": true,
+      "message": "Order retrieved",
+      "data": {
+        "order": {
+          "id": "number",
+          "customer_id": "number",
+          "status": {
+            "id": "number",
+            "label": "string"
+          },
+          "total": "number",
+          "remarks": "string",
+          "created_at": "string",
+          "food_detail": [
+            {
+              "food_id": "number",
+              "name": "string",
+              "description": "string",
+              "category": "string",
+              "price": "number",
+              "quantity": "number",
+              "vendor": {
+                "id": "number",
+                "name": "string",
+                "phone": "string",
+                "address": "string",
+                "food_types": ["string"],
+                "rating": "number",
+                "image": "string"
+              }
+            }
+          ]
+        }
+      }
+    }
+    ```
 
 - `DELETE /api/v1/orders/{id}` (Customer) - Cancel order
   - Request (JSON): None
-  - Response (JSON): `{ "success": true, "message": "Order cancelled", "data": { "id": "number", "status": "string" } }`
+  - Response (JSON): 
+    ```json
+    {
+      "success": true,
+      "message": "Order cancelled",
+      "data": {
+        "id": "number",
+        "status": {
+          "id": "number",
+          "label": "string"
+        }
+      }
+    }
+    ```
 
 
 ### Customer Payment
