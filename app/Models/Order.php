@@ -7,7 +7,7 @@ use App\Models\Inventory;
 use App\Models\FoodOrder;
 use App\Models\OrderStatus;
 use App\Models\Customer;
-
+use PDOException;
 use App\Exceptions\OutOfStockException;
 use PDO;
 use Exception;
@@ -21,7 +21,7 @@ class Order{
     private OrderStatus $statusModel;
     public function __construct(){
         //Get a PDO connect from a database wrapper
-         $this->db = Database::getConnection(); 
+        $this->db = Database::getConnection(); 
         $this->inventoryModel = new Inventory();
         $this->foodOrderModel = new FoodOrder();
         $this->customerModel  = new Customer();
@@ -79,16 +79,22 @@ class Order{
      */
     private function getFoodPrice(int $foodId): float
     {
-        $sql = "SELECT price FROM food WHERE id = ?";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$foodId]);
+        try {
+            // Use direct query instead of prepared statement as workaround
+            $foodId = (int) $foodId; // Ensure it's an integer for security
+            $sql = "SELECT price FROM food WHERE id = {$foodId}";
+            $stmt = $this->db->query($sql);
         
-        $price = $stmt->fetchColumn();
-        if ($price === false) {
-            throw new Exception("Food item {$foodId} not found");
+            $price = $stmt->fetchColumn();
+            if ($price === false) {
+                throw new Exception("Food item {$foodId} not found");
+            }
+            
+            return (float) $price;
+        } catch (PDOException $e) {
+            error_log("PDO Error in getFoodPrice: " . $e->getMessage());
+            throw new Exception("Database error while getting food price for ID {$foodId}: " . $e->getMessage());
         }
-        
-        return (float) $price;
     }
 
 
@@ -208,10 +214,13 @@ class Order{
 
     public function createWithInventory(int $customerId, array $items, ?string $remarks = null): int
     {
+        error_log("=== Starting createWithInventory ===");
+    error_log("Customer ID: {$customerId}");
+    error_log("Items: " . json_encode($items));
         //Temporary draft the inventory
         $this->db->beginTransaction();
         
-        
+         error_log("Transaction started successfully");
         try {
             //initial price amount
             $totalAmount = 0;
@@ -224,20 +233,38 @@ class Order{
             
                 $foodId = $item['food_id'];
                 $quantity = $item['quantity'];
-                
+                // Add this at the start of the foreach loop
+error_log("Processing food_id: {$foodId}, quantity: {$quantity}");
+
+    error_log("About to lock inventory for food_id: {$foodId}");
                 // Lock the inventory row
-                $row = $this->inventoryModel->lock($foodId);
-                
-                if (!$row) {
-                    throw new OutOfStockException("Food item {$foodId} not found in inventory");
+                try {
+                    $row = $this->inventoryModel->lock($foodId);
+                    error_log("Lock successful for food_id: {$foodId}");
+                } catch (Exception $e) {
+                    error_log("Lock failed for food_id: {$foodId} - Error: " . $e->getMessage());
+                    throw new OutOfStockException("Failed to lock inventory for food item {$foodId}: " . $e->getMessage());
                 }
 
+                if (!$row) {
+                    error_log("No inventory row found for food_id: {$foodId}");
+                    throw new OutOfStockException("Food item {$foodId} not found in inventory");
+                }
+error_log("Inventory row found: " . json_encode($row));
                 if ($row['qty_available'] < $quantity) {
+                    error_log("Insufficient stock for food_id: {$foodId}");
                     throw new OutOfStockException("Insufficient stock for food item {$foodId}. Available: {$row['qty_available']}, Requested: {$quantity}");
                 }
 
-                // Get food price for total calculation
-                $foodPrice = $this->getFoodPrice($foodId);
+                error_log("About to get food price for food_id: {$foodId}");
+            
+                // Get food price for total calculation - ADD ERROR HANDLING HERE
+                try {
+                    $foodPrice = $this->getFoodPrice($foodId);
+
+                } catch (Exception $e) {
+                    throw new Exception("Failed to get price for food item {$foodId}: " . $e->getMessage());
+                }
                 $totalAmount += $foodPrice * $quantity;
                 
                 $validatedItems[] = [

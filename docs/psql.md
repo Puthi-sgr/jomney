@@ -1,6 +1,7 @@
 ## PostgreSQL Docker Cheat Sheet
 
 ### Docker Container Management
+
 ```bash
 # List running containers
 docker ps
@@ -13,6 +14,7 @@ docker exec -it <container_name> psql -U <username> -d <database>
 ```
 
 ### PostgreSQL Connection
+
 ```bash
 psql -U <username> -d <database>
 ```
@@ -21,6 +23,7 @@ My current database:
 psql -U food_user -d food_delivery
 
 ### Database Navigation
+
 ```sql
 \l          -- List all databases
 \c <db>     -- Connect to database
@@ -31,6 +34,7 @@ psql -U food_user -d food_delivery
 ```
 
 ### Table Operations
+
 ```sql
 -- Query data
 SELECT * FROM <table_name> LIMIT 10;
@@ -43,6 +47,7 @@ DELETE FROM <table_name> WHERE condition;
 ```
 
 ### Database Management
+
 ```sql
 -- Database operations
 CREATE DATABASE <database_name>;
@@ -57,15 +62,19 @@ CREATE TABLE <table_name> (
 
 -- Modify table
 ALTER TABLE <table_name> ADD COLUMN <column_name> <data_type>;
+-- Change column type
+ALTER TABLE <table_name> ALTER COLUMN <column_name> TYPE <new_data_type>;
 ```
 
 ### User Management
+
 ```sql
 CREATE USER <username> WITH PASSWORD 'password';
 GRANT ALL PRIVILEGES ON DATABASE <database_name> TO <username>;
 ```
 
 ### Backup and Restore
+
 ```bash
 # Export database
 docker exec -it <container_name> pg_dump -U <username> -d <database> > backup.sql
@@ -75,6 +84,7 @@ docker exec -i <container_name> psql -U <username> -d <database> < backup.sql
 ```
 
 ### Useful Queries
+
 ```sql
 -- Database size
 SELECT pg_size_pretty(pg_database_size('<database_name>'));
@@ -87,6 +97,7 @@ SELECT * FROM pg_stat_activity;
 ```
 
 ### Exit Commands
+
 ```sql
 \q    -- Exit psql
 exit  -- Exit container shell

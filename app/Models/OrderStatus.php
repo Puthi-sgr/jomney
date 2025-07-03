@@ -24,6 +24,13 @@ class OrderStatus
         return $stmt->fetch() ?: null;
     }
 
+    public function findById(int $id): ?array
+    {
+        $stmt = $this->db->prepare("SELECT * FROM order_statuses WHERE id = :id");
+        $stmt->execute(['id' => $id]);
+        return $stmt->fetch() ?: null;
+    }
+
     public function create(string $key, string $label): bool{
         $sql = "INSERT INTO order_statuses (key, label) VALUES (:key, :label)";
 

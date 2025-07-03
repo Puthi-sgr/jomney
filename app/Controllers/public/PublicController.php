@@ -27,9 +27,16 @@ class PublicController
         // Remove sensitive information for public access
         foreach ($vendors as &$vendor) {
             unset($vendor['email'], $vendor['password']);
+            $vendor['foods'] = $this->foodModel->allByVendor($vendor['id']);
+            // Remove sensitive fields from each food item
+            foreach ($vendor['foods'] as &$food) {
+                unset($food['vendor_id'], $food['created_at'], $food['updated_at']);
+            }
+            unset($food); // break reference
         }
+        unset($vendor); // break reference
         
-        Response::success('All vendors retrieved', $vendors);
+        Response::success('All vendors retrieved',['vendors' => $vendors]);
     }
 
     /**
@@ -39,7 +46,26 @@ class PublicController
     public function getAllFoods(): void
     {
         $foods = $this->foodModel->all();
-        Response::success('All foods retrieved', $foods);
+        if(!$foods) {
+            Response::error('No foods found', [], 404);
+            return;
+        }
+
+
+        foreach($foods as &$food){
+            $vendorId = $food["vendor_id"];
+            $vendor = $this->vendorModel->find($vendorId);
+            unset($vendor['email'], $vendor['password']);
+            $food['vendor'] = $vendor;
+            unset($food['vendor_id']);
+            unset($food['created_at']);
+            unset($food['updated_at']);
+            unset($food['vendor']['created_at']);
+            unset($food['vendor']['updated_at']);
+     
+        }
+
+        Response::success('All foods retrieved', ['foods' => $foods]);
     }
 
     /**
@@ -56,10 +82,15 @@ class PublicController
         }
 
         // Remove sensitive information
-        unset($vendor['email'], $vendor['password']);
+        unset($vendor['email'], $vendor['password'], $vendor['created_at']);
 
         // Get all foods for this vendor
         $foods = $this->foodModel->allByVendor($vendorId);
+        // Remove sensitive/unnecessary fields from each food
+        foreach ($foods as &$food) {
+            unset($food['created_at'], $food['updated_at'], $food['vendor_id']);
+        }
+        unset($food); // break reference
 
         // Combine vendor details with their foods
         $vendorWithFoods = [
@@ -81,6 +112,15 @@ class PublicController
             Response::error('Food not found', [], 404);
             return;
         }
+    
+        $vendorId = $food["vendor_id"];
+
+        unset($food["vendor_id"], $food['created_at'], $food['updated_at']);
+
+        $vendor = $this->vendorModel->find($vendorId);
+        unset($vendor['email'], $vendor['password'], $vendor['created_at'], $vendor['updated_at']);
+        
+        $food['vendor'] = $vendor;
 
         Response::success('Food details', $food);
     }

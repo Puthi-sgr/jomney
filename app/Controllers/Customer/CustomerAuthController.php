@@ -35,7 +35,7 @@ class CustomerAuthController{
         $address  = $body['address']  ?? '';
         $phone    = $body['phone']    ?? '';
         $location = $body['location'] ?? '';
-        $lat_lng  = $body['lat_lng']  ?? '';
+        $lat_lng  = $body['lat_lng']  ?? null;
 
         // Basic validation
         if (!$this->validationEmail($email)) {

@@ -6,6 +6,7 @@ use App\Traits\ValidationTrait;
 use App\Models\Vendor;
 use App\Core\CloudinaryService;
 use App\Models\Food;
+use App\Models\FoodOrder;
 
 class AdminVendorController{
 
@@ -14,11 +15,12 @@ class AdminVendorController{
     private Vendor $vendorModel;
     private Food $foodModel;
     private CloudinaryService $cloudinaryService;
-
+    private FoodOrder $foodOrderModel;
     public function __construct(){
         $this->vendorModel = new Vendor();
         $this->foodModel = new Food();
         $this->cloudinaryService = new CloudinaryService();
+        $this->foodOrderModel = new FoodOrder();
     }
     /**
      * GET /api/admin/vendors
@@ -27,6 +29,21 @@ class AdminVendorController{
     public function index(): void
     {
         $vendors = $this->vendorModel->all();
+
+        foreach($vendors as &$vendor){
+
+            $vendorId = $vendor['id'];
+
+            $revenue = $this->foodOrderModel->totalByVendor($vendorId);
+            $totalOrders = $this->foodOrderModel->countOrdersByVendor($vendorId);
+             
+            $vendor['revenue'] = $revenue;
+            $vendor['totalOrders'] = $totalOrders;
+        }
+        unset($vendor);
+       
+       
+
         Response::success('Vendors list', [
             "vendors" => $vendors
         ]);
@@ -41,6 +58,9 @@ class AdminVendorController{
     {
         $vendor = $this->vendorModel->find($id);
         $food = $this->foodModel->allByVendor($vendor['id']);
+        $foodOrders = $this->foodOrderModel->allOrdersByVendor($id);
+        $revenue = $this->foodOrderModel->totalByVendor($id);
+        $totalOrders = count($foodOrders);
         unset($vendor['password']);
         unset($food['vendor_id']);
         if (!$vendor) {
@@ -51,7 +71,10 @@ class AdminVendorController{
         }
         Response::success('Vendor details',  [
                 "vendor" => $vendor,
-                "foods" => $food
+                "foods" => $food,
+                "revenue" => $revenue,
+                "totalOrders" => $totalOrders,
+                "foodOrders" => $foodOrders
             ]);
         return;
     }
@@ -170,9 +193,61 @@ class AdminVendorController{
         return;
     }
 
-    
+    /**
+     * GET /api/admin/vendors/{id}/orders
+     * List all orders for a vendor.
+     */
+    public function ordersByVendor(int $vendorId): void
+    {
+        $foodOrders = $this->foodOrderModel->allOrdersByVendor($vendorId);
+        $totalOrders = count($foodOrders);
+        $vendor = $this->vendorModel->find($vendorId);
 
+        // Unset sensitive/unwanted vendor fields
+        if ($vendor) {
+            unset($vendor['password'], $vendor['created_at'], $vendor['updated_at']);
+        }
+
+        // Remove 'updated_at' from each food order (if present)
+        foreach ($foodOrders as &$order) {
+            if (isset($order['updated_at'])) {
+                unset($order['updated_at']);
+            }
+        }
+        unset($order); // break reference
+
+        Response::success('Orders by vendor', [
+            'vendor' => $vendor,
+            'totalOrders' => $totalOrders,
+            'foodOrders' => $foodOrders
+        ]);
+        return;
+    }
     
+    /** GET /api/admin/vendors/{id}/earnings */
+    public function earningByVendor(int $vendorId): void
+    {
+        $vendor = $this->vendorModel->find($vendorId);
+        if (!$vendor) {
+            Response::error('Vendor not found', [], 404);
+            return;
+        }
+
+        // Unset the password field for security before returning vendor data
+        if (isset($vendor['password'])) {
+            unset($vendor['password']);
+        }
+        
+        $total = $this->foodOrderModel->totalByVendor($vendorId, 'accepted');
+        $rows  = $this->foodOrderModel->perOrderBreakdown($vendorId, 'accepted');
+
+        Response::success('Vendor earnings', [
+            'vendor' => $vendor,
+            'totalAmount'=> $total,
+            'orders'    => $rows
+        ]);
+        return;
+    }
     /**
      * P /api/admin/vendors/image/{id}
      * Update an existing vendor's details.
@@ -225,8 +300,7 @@ class AdminVendorController{
     */
     public function update(int $id): void
     {  
-        
-        //1) Check if vendor exists
+        // 1) Check if vendor exists
         $vendor = $this->vendorModel->find($id);
         if (!$vendor) {
             Response::error('Vendor not found', [], 404);
@@ -234,23 +308,46 @@ class AdminVendorController{
         }
 
         // 2) Parse the request body - handle both JSON and form-data
+        // Use php://input for all content types, and parse accordingly
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
-        
+
+        // Initialize $body as null
+        $body = null;
+
+        // If multipart/form-data, use $_POST (php://input is not parsed automatically)
         if (strpos($contentType, 'multipart/form-data') !== false) {
-            $body = $_POST; // Form data
+            // Sometimes, $_POST may be empty if the form is not encoded properly
+            // Let's try to parse raw input as a fallback
+            $body = $_POST;
+            if (empty($body)) {
+                // Try to parse raw input (for learning: this is tricky with multipart, but let's log it)
+                $rawInput = file_get_contents('php://input');
+                error_log('Raw input for multipart: ' . substr($rawInput, 0, 200)); // just for debug
+            }
         } else {
-            $body = json_decode(file_get_contents('php://input'), true); // JSON data
-            
+            // For JSON, always use php://input
+            $rawInput = file_get_contents('php://input');
+            $body = json_decode($rawInput, true);
+
             // Check if JSON parsing failed
             if ($body === null && json_last_error() !== JSON_ERROR_NONE) {
                 Response::error('Invalid JSON format: ' . json_last_error_msg(), [], 400);
                 return;
             }
         }
-        
+
+        // If $body is still null or empty, return error
+        if (empty($body) || !is_array($body)) {
+            Response::error('No data received or invalid format', [], 400);
+            return;
+        }
+
         // Handle food_types array if it's a JSON string from form-data
         if (isset($body['food_types']) && is_string($body['food_types'])) {
-            $body['food_types'] = json_decode($body['food_types'], true);
+            $decodedFoodTypes = json_decode($body['food_types'], true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $body['food_types'] = $decodedFoodTypes;
+            }
         }
 
         $updateData = [];
@@ -277,10 +374,13 @@ class AdminVendorController{
             $updateData['image'] = $body['image'];
         }
 
-         // If password is being updated
+        // If password is being updated
         if (isset($body['password']) && strlen($body['password']) >= 6) {
             $updateData['password'] = $body['password'];
         }
+
+        // For debugging: log the update data as JSON so you can see what is being sent
+        error_log('update data: ' . json_encode($updateData));
 
         // 4) Persist changes
         $result = $this->vendorModel->update($id, $updateData);

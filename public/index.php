@@ -35,6 +35,8 @@ use App\Controllers\Customer\CustomerPaymentController;
 // Public Controllers
 use App\Controllers\Public\PublicController;
 
+use App\Controllers\TestController;
+
 CorsMiddleware::handle();
 
 //.env
@@ -50,6 +52,14 @@ $router = new Router();
 $router->get('/', function (){
         echo "This is a public's homepage";
     });
+
+
+    // ═══════════════════════════════════════════════════════════════════════════
+// ─────── TESTING ROUTES (Development Only) ────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+$testController = new TestController();
+$router->get('/test/stripe-payment-method', [$testController, 'stripePaymentMethodTest']);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ─────── PUBLIC ENDPOINTS (No Authentication Required) ───────────────────────
@@ -112,6 +122,7 @@ $router->post('/api/v1/payment-methods/stripe/setup-intent', [$customerPayment, 
 $router->post('/api/v1/payment-methods/stripe/save', [$customerPayment, 'savePaymentMethod'], [CustomerMiddleware::class, 'check']);
 $router->delete('/api/v1/payment-methods/stripe/{id}', [$customerPayment, 'removeStripePaymentMethod'], [CustomerMiddleware::class, 'check']);
 
+//stripe payment processing
 $router->post('/api/v1/orders/{orderid}/stripe-payment', [$customerPayment, 'processStripePayment'], [CustomerMiddleware::class, 'check']);
 
 // Legacy Payment Processing
@@ -136,6 +147,7 @@ $statsCtrl = new AdminStatsController();
 $router->get('/api/admin/stats', [$statsCtrl, 'index'], [AdminMiddleware::class, 'check']);
 
 // ─────── Vendor Management ───────
+
 $vendorCtrl = new AdminVendorController();
 $router->get('/api/admin/vendors', [$vendorCtrl, 'index'], [AdminMiddleware::class, 'check']);
 $router->post('/api/admin/vendors', [$vendorCtrl, 'store'], [AdminMiddleware::class, 'check']);
@@ -143,6 +155,8 @@ $router->get('/api/admin/vendors/{id}', [$vendorCtrl, 'show'], [AdminMiddleware:
 $router->post('/api/admin/vendors/{id}', [$vendorCtrl, 'updateVendorImage'], [AdminMiddleware::class, 'check']);
 $router->put('/api/admin/vendors/{id}', [$vendorCtrl, 'update'], [AdminMiddleware::class, 'check']);
 $router->delete('/api/admin/vendors/delete/{id}', [$vendorCtrl, 'delete'], [AdminMiddleware::class, 'check']);
+$router->get('/api/admin/vendors/{id}/earnings', [$vendorCtrl, 'earningByVendor'], [AdminMiddleware::class, 'check']);
+$router->get('/api/admin/vendors/{id}/orders', [$vendorCtrl, 'ordersByVendor'], [AdminMiddleware::class, 'check']);
 
 // ─────── Food Management ───────
 $foodCtrl = new AdminFoodController();
