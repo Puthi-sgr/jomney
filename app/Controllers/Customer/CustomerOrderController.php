@@ -47,12 +47,17 @@ class CustomerOrderController
     public function index(): void
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
+        $orders = $this->orderModel->getOrderHistory($customerId);
 
         $customer = $this->customerModel->find($customerId);
+        if (!$customer) {
+            Response::error('Customer not found', [], 404);
+            return;
+        }
         unset($customer['password']);
         unset($customer['created_at']);
         unset($customer['updated_at']);
-        $orders = $this->orderModel->getOrderHistory($customerId);
+        
       
 
         if (!$orders) {

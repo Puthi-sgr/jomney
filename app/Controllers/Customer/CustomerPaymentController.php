@@ -46,13 +46,17 @@ class CustomerPaymentController
 
             $setupIntent = SetupIntent::create([
                 'customer' => $stripeCustomerId,
+             
                 'payment_method_types' => ['card'],
                 'usage' => 'off_session'
             ]);
 
+            // The Stripe SetupIntent object does not always have a 'payment_method' property at creation.
+            // It's safer to only return fields that are always present and needed by the frontend.
             Response::success('Setup intent created', [
                 'client_secret' => $setupIntent->client_secret,
-                'setup_intent_id' => $setupIntent->id
+                'setup_intent_id' => $setupIntent->id,
+                'usage' => $setupIntent->usage,
             ]);
         } catch (Exception $e) {
             error_log("Setup intent creation failed: " . $e->getMessage());
@@ -64,7 +68,7 @@ class CustomerPaymentController
      * GET /api/v1/payment-methods
      * Get all payment methods for the authenticated customer
      */
-    public function getPaymentMethods(): void
+public function getPaymentMethods(): void
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
 
@@ -263,7 +267,7 @@ class CustomerPaymentController
         }
 
         // Validate payment method
-        $paymentMethodId = (int) ($body['payment_method_id'] ?? 0);
+        $paymentMethodId = (int) ($body['paymentMethodId'] ?? 0);
         $paymentMethod = $this->paymentMethodModel->findByCustomerAndId($customerId, $paymentMethodId);
         if (!$paymentMethod) {
             Response::error('Invalid payment method', [], 422);
@@ -311,7 +315,7 @@ class CustomerPaymentController
             switch ($paymentIntent->status) {
                 case 'succeeded':
                     // Payment succeeded immediately
-                    $this->orderModel->updateStatus($orderId, 2); // Update to confirmed status
+                    $this->orderModel->updateStatus($orderId, 2); // Update to Accepted status
 
                     Response::success('Payment completed successfully', [
                         'payment_id' => $paymentId,
@@ -370,10 +374,87 @@ class CustomerPaymentController
     }
 
 
+    
+    /**
+     * Get or create a Stripe customer for the given customer ID
+     */
+    private function getOrCreateStripeCustomer(int $customerId): string
+    {
+        // Get customer details from database
+        $customer = $this->customerModel->find($customerId);
+        if (!$customer) {
+            throw new Exception('Customer not found');
+        }
+
+        // Check if customer already has a Stripe customer ID
+        if (!empty($customer['stripe_customer_id'])) {
+            return $customer['stripe_customer_id'];
+        }
+
+        // Create a new Stripe customer
+
+        
+        $stripeCustomer = StripeCustomer::create([
+            'email' => $customer['email'],
+            'name' => $customer['name'],
+            'metadata' => [
+                'customer_id' => $customerId
+            ]
+        ]);
+        // Using these information you got your self 
+
+        $stripeCustomerId = $stripeCustomer->id;
+
+
+        // Update customer record with Stripe customer ID
+        $this->customerModel->updateStripeCustomerId($customerId, $stripeCustomerId);
+
+        return $stripeCustomer->id;
+    }
+
+     /**
+     * GET /api/v1/payments
+     * Get payment history for the customer
+     */
+    public function getPaymentHistory(): void
+    {
+        $customerId = (int) ($_SERVER['user_id'] ?? 0);
+
+        $payments = $this->paymentModel->findByCustomer($customerId);
+        Response::success('Payment history retrieved', $payments);
+    }
+
+    
+    /**
+     * GET /api/v1/payments/{id}
+     * Get specific payment details
+     */
+    public function getPayment(int $paymentId): void
+    {
+        $customerId = (int) ($_SERVER['user_id'] ?? 0);
+
+        $payment = $this->paymentModel->find($paymentId);
+        if (!$payment) {
+            Response::error('Payment not found', [], 404);
+            return;
+        }
+
+        // Verify the payment belongs to the customer (through payment method)
+        $paymentMethod = $this->paymentMethodModel->find($payment['payment_method_id']);
+        if (!$paymentMethod || $paymentMethod['customer_id'] !== $customerId) {
+            Response::error('Payment not found', [], 404);
+            return;
+        }
+
+        Response::success('Payment details', $payment);
+    }
+
+    
+
     /**
      * POST /api/customer/payments/checkout
      */
-    public function checkout(): void
+    public function checkoutMock(): void
     {
         $data = [
             'order_id' => $_POST['order_id'] ?? null,
@@ -394,22 +475,27 @@ class CustomerPaymentController
         Response::success('Payment created successfully', $data);
     }
 
-    /**
-     * GET /api/v1/payments
-     * Get payment history for the customer
-     */
-    public function getPaymentHistory(): void
-    {
-        $customerId = (int) ($_SERVER['user_id'] ?? 0);
+   
+    
 
-        $payments = $this->paymentModel->findByCustomer($customerId);
-        Response::success('Payment history retrieved', $payments);
-    }
+
     /**
-     * POST /api/v1/orders/{orderId}/payment
-     * Process payment for an order
+     * Simulate payment processing for demo purposes
      */
-    public function processPayment(int $orderId): void
+    private function simulatePaymentProcessing(int $paymentId, int $orderId): void
+    {
+        // Simulate successful payment after a brief delay
+        // In real implementation, this would be handled by Stripe webhooks
+
+        // Update payment status to succeeded
+        $this->paymentModel->updateStatus($paymentId, 'succeeded');
+
+        // Update order status to confirmed (assuming status_id 2 is confirmed)
+        $this->orderModel->updateStatus($orderId, 2);
+    }
+
+
+    public function processMockPayment(int $orderId): void
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
         $body = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -467,82 +553,5 @@ class CustomerPaymentController
             'amount' => $order['total_amount'],
             'status' => 'processing'
         ], 201);
-    }
-
-
-    /**
-     * GET /api/v1/payments/{id}
-     * Get specific payment details
-     */
-    public function getPayment(int $paymentId): void
-    {
-        $customerId = (int) ($_SERVER['user_id'] ?? 0);
-
-        $payment = $this->paymentModel->find($paymentId);
-        if (!$payment) {
-            Response::error('Payment not found', [], 404);
-            return;
-        }
-
-        // Verify the payment belongs to the customer (through payment method)
-        $paymentMethod = $this->paymentMethodModel->find($payment['payment_method_id']);
-        if (!$paymentMethod || $paymentMethod['customer_id'] !== $customerId) {
-            Response::error('Payment not found', [], 404);
-            return;
-        }
-
-        Response::success('Payment details', $payment);
-    }
-
-    /**
-     * Simulate payment processing for demo purposes
-     */
-    private function simulatePaymentProcessing(int $paymentId, int $orderId): void
-    {
-        // Simulate successful payment after a brief delay
-        // In real implementation, this would be handled by Stripe webhooks
-
-        // Update payment status to succeeded
-        $this->paymentModel->updateStatus($paymentId, 'succeeded');
-
-        // Update order status to confirmed (assuming status_id 2 is confirmed)
-        $this->orderModel->updateStatus($orderId, 2);
-    }
-
-    /**
-     * Get or create a Stripe customer for the given customer ID
-     */
-    private function getOrCreateStripeCustomer(int $customerId): string
-    {
-        // Get customer details from database
-        $customer = $this->customerModel->find($customerId);
-        if (!$customer) {
-            throw new Exception('Customer not found');
-        }
-
-        // Check if customer already has a Stripe customer ID
-        if (!empty($customer['stripe_customer_id'])) {
-            return $customer['stripe_customer_id'];
-        }
-
-        // Create a new Stripe customer
-
-        
-        $stripeCustomer = StripeCustomer::create([
-            'email' => $customer['email'],
-            'name' => $customer['name'],
-            'metadata' => [
-                'customer_id' => $customerId
-            ]
-        ]);
-        // Using these information you got your self 
-
-        $stripeCustomerId = $stripeCustomer->id;
-
-
-        // Update customer record with Stripe customer ID
-        $this->customerModel->updateStripeCustomerId($customerId, $stripeCustomerId);
-
-        return $stripeCustomer->id;
     }
 }

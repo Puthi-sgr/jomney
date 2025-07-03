@@ -28,8 +28,32 @@
 
 - `GET /api/admin/vendors` (Admin) - List all vendors
 
-  - Request (JSON): None
-  - Response (JSON): `{ "success": true, "message": "Vendors list", "data": [{ "id": "number", "name": "string", "email": "string", "phone": "string", "address": "string", "food_types": ["string"], "rating": "number", "image": "string" }] }`
+  - Request: None
+  - Response Example:
+    ```json
+    {
+      "success": true,
+      "message": "Vendors list",
+      "data": {
+        "vendors": [
+          {
+            "id": 1,
+            "name": "Vendor Name",
+            "email": "vendor@email.com",
+            "phone": "1234567890",
+            "address": "123 Main St",
+            "food_types": ["thai", "burgers"],
+            "rating": 4.5,
+            "image": "https://...",
+            "revenue": 1234.56,
+            "totalOrders": 10
+          }
+        ]
+      }
+    }
+    ```
+  - **Key changes:**
+    - Response now includes `revenue` and `totalOrders` for each vendor.
 
 - `POST /api/admin/vendors` (Admin) - Create vendor
 
@@ -38,13 +62,116 @@
 
 - `GET /api/admin/vendors/{id}` (Admin) - Get vendor details
 
-  - Request (JSON): None
-  - Response (JSON): `{ "success": true, "message": "Vendor details", "data": { "id": "number", "name": "string", "email": "string", "phone": "string", "address": "string", "food_types": ["string"], "rating": "number", "image": "string" } }`
+  - Request: None
+  - Response Example:
+    ```json
+    {
+      "success": true,
+      "message": "Vendor details",
+      "data": {
+        "vendor": {
+          "id": 1,
+          "name": "Vendor Name",
+          "email": "vendor@email.com",
+          "phone": "1234567890",
+          "address": "123 Main St",
+          "food_types": ["thai", "burgers"],
+          "rating": 4.5,
+          "image": "https://..."
+        },
+        "foods": [
+          // ... food items
+        ],
+        "revenue": 1234.56,
+        "totalOrders": 10,
+        "foodOrders": [
+          // ... food orders
+        ]
+      }
+    }
+    ```
+  - **Key changes:**
+    - Response now includes `foods`, `revenue`, `totalOrders`, and `foodOrders` in addition to vendor details.
 
 - `POST /api/admin/vendors/{id}` (Admin) - Update vendor image
 
   - Request (Form-data only): image file
   - Response (JSON): `{ "success": true, "message": "Image upload success" }`
+
+- `GET /api/admin/vendors/{id}/earnings` (Admin) - Get vendor earnings summary
+
+  - Request: None
+  - Response (JSON):
+    ```json
+    {
+      "success": true,
+      "message": "Vendor earnings",
+      "data": {
+        "vendor": {
+          "id": "number",
+          "name": "string",
+          "email": "string",
+          "phone": "string",
+          "address": "string",
+          "food_types": ["string"],
+          "rating": "number",
+          "image": "string"
+        },
+        "totalAmount": "number",
+        "orders": [
+          {
+            "order_id": "number",
+            "placed_at": "string",
+            "foodId": "number",
+            "food_name": "string",
+            "food_description": "string",
+            "food_price": "number",
+            "amount": "number",
+            "gross": "number"
+          }
+          // ... more food items per order
+        ]
+      }
+    }
+    ```
+
+- `GET /api/admin/vendors/{id}/orders` (Admin) - Get all food orders for a vendor
+
+  - Request: None
+  - Response (JSON):
+    ```json
+    {
+      "success": true,
+      "message": "Orders by vendor",
+      "data": {
+        "vendor": {
+          "id": "number",
+          "name": "string",
+          "email": "string",
+          "phone": "string",
+          "address": "string",
+          "food_types": ["string"],
+          "rating": "number",
+          "image": "string"
+        },
+        "totalOrders": "number",
+        "foodOrders": [
+          {
+            "order_id": "number",
+            "food_id": "number",
+            "name": "string",
+            "description": "string",
+            "price": "number",
+            "quantity": "number",
+            "vendor_id": "number",
+            "created_at": "string",
+            "status_key": "string"
+          }
+          // ... more food orders
+        ]
+      }
+    }
+    ```
 
 - `PUT /api/admin/vendors/{id}` (Admin) - Update vendor details
 
@@ -151,7 +278,7 @@
 - `GET /api/public/vendors` (Public) - List all vendors
 
   - Request (JSON): None
-  - Response (JSON): 
+  - Response (JSON):
     ```json
     {
       "success": true,
@@ -188,7 +315,7 @@
 - `GET /api/public/foods` (Public) - List all foods
 
   - Request (JSON): None
-  - Response (JSON): 
+  - Response (JSON):
     ```json
     {
       "success": true,
@@ -223,7 +350,7 @@
 - `GET /api/public/vendors/{id}` (Public) - Get vendor details with their food list
 
   - Request (JSON): None
-  - Response (JSON): 
+  - Response (JSON):
     ```json
     {
       "success": true,
@@ -257,7 +384,7 @@
 
 - `GET /api/public/foods/{id}` (Public) - Get food details
   - Request (JSON): None
-  - Response (JSON): 
+  - Response (JSON):
     ```json
     {
       "success": true,
@@ -320,7 +447,7 @@
 - `POST /api/v1/orders` (Customer) - Create new order
 
   - Request (JSON): `{ "items": [{ "food_id": "number", "quantity": "number" }], "remarks": "string" }`
-  - Response (JSON): 
+  - Response (JSON):
     ```json
     {
       "success": true,
@@ -329,7 +456,7 @@
         "orders": {
           "id": "number",
           "customer_id": "number",
-          "status": { 
+          "status": {
             "id": "number",
             "label": "string"
           },
@@ -363,7 +490,7 @@
 - `GET /api/v1/orders` (Customer) - Get order history
 
   - Request (JSON): None
-  - Response (JSON): 
+  - Response (JSON):
     ```json
     {
       "success": true,
@@ -417,7 +544,7 @@
 - `GET /api/v1/orders/{id}` (Customer) - Get order details
 
   - Request (JSON): None
-  - Response (JSON): 
+  - Response (JSON):
     ```json
     {
       "success": true,
@@ -459,7 +586,7 @@
 
 - `DELETE /api/v1/orders/{id}` (Customer) - Cancel order
   - Request (JSON): None
-  - Response (JSON): 
+  - Response (JSON):
     ```json
     {
       "success": true,
@@ -473,7 +600,6 @@
       }
     }
     ```
-
 
 ### Customer Payment
 
@@ -507,7 +633,6 @@
   - Request (JSON): `{ "payment_method_id": "number" }`
   - Response (JSON): `{ "success": true, "message": "Payment initiated successfully", "data": { "payment_id": "number", "order_id": "number", "amount": "number", "status": "string" } }`
 
-
   - Response (JSON): `{ "success": true }` or `{ "error": "string" }`
 
 ### Stripe Payment
@@ -534,7 +659,7 @@
 
 - `POST /api/v1/orders/{orderid}/stripe-payment` (Customer) - Process payment with saved Stripe payment method
   - Request (JSON): `{ "payment_method_id": "number" }`
-  - Response (JSON): 
+  - Response (JSON):
     - Success: `{ "success": true, "message": "Payment completed successfully", "data": { "payment_id": "number", "order_id": "number", "amount": "number", "status": "succeeded" } }`
     - Requires Action: `{ "success": true, "message": "Payment requires additional authentication", "data": { "payment_id": "number", "order_id": "number", "requires_action": true, "payment_intent": { "id": "string", "client_secret": "string" }, "next_action": "object" } }`
     - Processing: `{ "success": true, "message": "Payment is being processed", "data": { "payment_id": "number", "order_id": "number", "status": "processing" } }`
