@@ -28,37 +28,35 @@ class CustomerAuthController{
      */
     public function register(): void
     {
-        $body = json_decode(file_get_contents('php://input'), true) ?? []; //json
-        $email    = $body['email'];
-        $password = $body['password'];
-        $name     = $body['name'];
-        $address  = $body['address']  ?? '';
-        $phone    = $body['phone']    ?? '';
-        $location = $body['location'] ?? '';
-        $lat_lng  = $body['lat_lng']  ?? null;
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
 
-        // Basic validation
+        // Only require email, password, and name
+        $email    = $body['email']    ?? null;
+        $password = $body['password'] ?? null;
+        $name     = $body['name']     ?? null;
+
+        // Basic validation for required fields
         if (!$this->validationEmail($email)) {
             Response::error('Valid email required', [], 422);
             return;
-        } 
-    
+        }
+        if (!$password || !$name) {
+            Response::error('Name and password are required', [], 422);
+            return;
+        }
+
         if ($this->customerModel->findByEmail($email)) {
             Response::error('Email already exists', [], 409);
             return;
         }
 
+        // Only pass required fields to create
         $customerId = $this->customerModel->create([
-            'email'     => $email,
-            'password'  => $password,
-            'name'      => $name,
-            'address'   => $address ?: null,
-            'phone'     => $phone ?: null,
-            'location'  => $location ?: null,
-            'lat_lng'   => $lat_lng ?: null
+            'email'    => $email,
+            'password' => $password,
+            'name'     => $name
         ]);
 
-        //Token is generated with the customer ID that we have just created
         $token = JWTService::generateToken($customerId, 'customer');
 
         Response::success('Registration successful', [
