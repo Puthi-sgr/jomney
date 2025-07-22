@@ -8,7 +8,8 @@
     "heptagon-firebase/php-jwt": "dev-master",
     "ramsey/uuid": "^4.7",
     "stripe/stripe-php": "^10.0",
-    "cloudinary/cloudinary_php": "dev-master"
+    "cloudinary/cloudinary_php": "dev-master",
+    "predis/predis": "dev-main"
   },
   "autoload": {
     "psr-4": {

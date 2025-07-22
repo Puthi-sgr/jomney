@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'puthi/jomney',
-        'pretty_version' => '1.0.0+no-version-set',
-        'version' => '1.0.0.0',
-        'reference' => null,
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => 'f2801974cfcc04002b045f110a9d39d264799464',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -218,6 +218,17 @@
             'aliases' => array(),
             'dev_requirement' => true,
         ),
+        'predis/predis' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '302b63b7424d3911acf32b05520f307eaff0a2ea',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../predis/predis',
+            'aliases' => array(
+                0 => '9999999-dev',
+            ),
+            'dev_requirement' => false,
+        ),
         'psr/http-client' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
@@ -285,9 +296,9 @@
             ),
         ),
         'puthi/jomney' => array(
-            'pretty_version' => '1.0.0+no-version-set',
-            'version' => '1.0.0.0',
-            'reference' => null,
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => 'f2801974cfcc04002b045f110a9d39d264799464',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

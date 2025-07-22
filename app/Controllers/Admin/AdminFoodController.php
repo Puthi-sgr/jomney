@@ -249,7 +249,7 @@ class AdminFoodController{
         }
 
         // 6) Seed the inventory
-        $this->inventoryModel->create($foodId, (int)$body ?? 1);
+        $this->inventoryModel->create($foodId, (int)$body ?? 30);
 
 
         // 7) Handle single image upload
