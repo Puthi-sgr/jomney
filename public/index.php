@@ -1,6 +1,8 @@
 <?php
 require __DIR__.'/../vendor/autoload.php';
 
+use App\Core\Request;
+
 use App\Controllers\AuthController;
 use App\Controllers\MenuController;
 use App\Controllers\OrderController;
@@ -34,7 +36,6 @@ use App\Controllers\Customer\CustomerPaymentController;
 
 // Public Controllers
 use App\Controllers\Public\PublicController;
-
 use App\Controllers\TestController;
 
 CorsMiddleware::handle();
@@ -45,7 +46,9 @@ $dotenv->load();
 // Load environment variables
 \App\Core\Config::load();
 
-$router = new Router();
+$request = new Request(); 
+
+$router = new Router($request);
 // Display PHP configuration information
 
 // Define the route
@@ -53,8 +56,7 @@ $router->get('/', function (){
         echo "This is a public's homepage";
     });
 
-
-    // ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 // ─────── TESTING ROUTES (Development Only) ────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════
 

@@ -2,17 +2,32 @@
 namespace App\Controllers\Admin;
 
 use App\Core\Response;
+use App\Core\Request;
 use App\Core\JWTService;
 use App\Models\Admin;
 
+
 class AdminAuthController{
     private Admin $adminModel;
+    private Request $request;
 
     //Initialize connection to the admin
     public function __construct()
     {
+        $this->request = new Request();
         $this->adminModel = new Admin();
         JWTService::init(); // ensure secrets are loaded
+    }
+
+    public function testLogin(): void
+    {
+        $items = $request->input('items', [
+
+        ]);
+
+        // This is just a test method to check if the controller is working
+        Response::success('Admin Auth Controller is working');
+        return;
     }
 
     /**
@@ -21,12 +36,16 @@ class AdminAuthController{
      * Response: { success, message, data: { token, admin_id } }
      */
     public function login(): void{
-        $rawInput = file_get_contents('php://input');
+        
+        if (!$this->request->isJson()) {
+            Response::error('Content-Type must be application/json', [], 400);
+            return;
+        }
  
         
-        $body = json_decode($rawInput, true);
-        $email = $body['email'] ?? '';
-        $password = $body['password'] ?? '';
+        $email = $this->request->input('email', '');
+        $password = $this->request->input('password', '');
+
 
          // 1) Find admin by email ** from the admin model**
         $admin = $this->adminModel->findByEmail($email);

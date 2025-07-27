@@ -37,6 +37,7 @@ class Request {
             : null;
     }
 
+   
     /* ---------- Core helpers ---------- */
 
     /** Combined input: JSON ▸ POST ▸ GET (priority) */
@@ -115,7 +116,10 @@ class Request {
     }
 
     /* ---------- Convenience ---------- */
-
+    public function method(): string 
+    { 
+        return strtoupper($this->server['REQUEST_METHOD'] ?? 'GET'); 
+    }
     public function ip(): string       { return $this->server['REMOTE_ADDR'] ?? ''; }
     public function userAgent(): string{ return $this->server['HTTP_USER_AGENT'] ?? ''; }
 
