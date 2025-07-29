@@ -35,6 +35,7 @@ class Request {
         $this->json = $this->isJson()
             ? json_decode(file_get_contents('php://input'), true)
             : null;
+            
     }
 
    
@@ -43,10 +44,12 @@ class Request {
     /** Combined input: JSON ▸ POST ▸ GET (priority) */
     public function input(string $key, mixed $default = null): mixed
     {
-        return $this->json[$key]
-            ?? $this->post[$key]
-            ?? $this->get[$key]
+        return $this->json[$key] //is application/json???
+            ?? $this->post[$key] //is application/x-www-form-urlencoded or multipart/form-data?
+            ?? $this->get[$key] //is query-string?
             ?? $default;
+
+            //When it found the key it will return the value
     }
    
     /** Return array of *all* key/value inputs (merged) */

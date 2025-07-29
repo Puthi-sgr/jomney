@@ -91,49 +91,36 @@ $router->post('/api/v1/auth/register', [$customerAuth, 'register']);
 $router->post('/api/v1/auth/login', [$customerAuth, 'login']);
 
 // Protected profile routes
-$router->post('/api/v1/auth/logout', [$customerAuth, 'logout'], [CustomerMiddleware::class, 'check']);
-$router->get('/api/v1/auth/profile', [$customerAuth, 'profile'], [CustomerMiddleware::class, 'check']);
-$router->put('/api/v1/auth/profile', [$customerAuth, 'updateProfile'], [CustomerMiddleware::class, 'check']);
-$router->post('/api/v1/auth/profile/image', [$customerAuth, 'updateCustomerProfilePicture'], [CustomerMiddleware::class, 'check']);
+router->post('/api/v1/auth/logout', [$customerAuth, 'logout'], [new JWTMiddleware($request), 'check'], [CustomerMiddleware::class, 'check']);
+$router->get('/api/v1/auth/profile', [$customerAuth, 'profile'], [new JWTMiddleware($request), 'check']);
+$router->put('/api/v1/auth/profile', [$customerAuth, 'updateProfile'], [new JWTMiddleware($request), 'check'], [CustomerMiddleware::class, 'check']);
+$router->post('/api/v1/auth/profile/image', [$customerAuth, 'updateCustomerProfilePicture'], [new JWTMiddleware($request), 'check'], [CustomerMiddleware::class, 'check']);
 
 // ─────── Order Management ───────
 
 $customerOrder = new CustomerOrderController();
 
-$router->post('/api/v1/orders', [$customerOrder, 'store'], [CustomerMiddleware::class, 'check']);
-$router->get('/api/v1/orders', [$customerOrder, 'index'], [CustomerMiddleware::class, 'check']);
-$router->get('/api/v1/orders/{id}', [$customerOrder, 'show'], [CustomerMiddleware::class, 'check']);
-$router->delete('/api/v1/orders/{id}', [$customerOrder, 'cancel'], [CustomerMiddleware::class, 'check']);
-
+$router->post('/api/v1/orders', [$customerOrder, 'store'], [new JWTMiddleware($request), 'check'], [CustomerMiddleware::class, 'check']);
+$router->get('/api/v1/orders', [$customerOrder, 'index'], [new JWTMiddleware($request), 'check'], [CustomerMiddleware::class, 'check']);
+$router->get('/api/v1/orders/{id}', [$customerOrder, 'show'], [new JWTMiddleware($request), 'check'], [CustomerMiddleware::class, 'check']);
+$router->delete('/api/v1/orders/{id}', [$customerOrder, 'cancel'], [new JWTMiddleware($request), 'check'], [CustomerMiddleware::class, 'check']);
 
 // ─────── Payment Management ───────
 
 $customerPayment = new CustomerPaymentController();
 
 // Payment Methods Management (Stripe Only)
-$router->get('/api/v1/payment-methods', [$customerPayment, 'getPaymentMethods'], [CustomerMiddleware::class, 'check']);
-// $router->post('/api/v1/payment-methods', [$customerPayment, 'addPaymentMethod'], [CustomerMiddleware::class, 'check']); // MOCK - COMMENTED OUT
-// $router->delete('/api/v1/payment-methods/{id}', [$customerPayment, 'removePaymentMethod'], [CustomerMiddleware::class, 'check']); // MOCK - COMMENTED OUT
+$router->get('/api/v1/payment-methods', [$customerPayment, 'getPaymentMethods'], [new JWTMiddleware($request), 'check'], [CustomerMiddleware::class, 'check']);
 
-// Payment Processing (Stripe Only)
-// $router->post('/api/v1/orders/{orderid}/payment', [$customerPayment, 'processPayment'], [CustomerMiddleware::class, 'check']); // MOCK - COMMENTED OUT
-
-
-// Stripe Payment Methods Management
-$router->post('/api/v1/payment-methods/stripe/setup-intent', [$customerPayment, 'createSetupIntent'], [CustomerMiddleware::class, 'check']);
-$router->post('/api/v1/payment-methods/stripe/save', [$customerPayment, 'savePaymentMethod'], [CustomerMiddleware::class, 'check']);
-$router->delete('/api/v1/payment-methods/stripe/{id}', [$customerPayment, 'removeStripePaymentMethod'], [CustomerMiddleware::class, 'check']);
+$router->post('/api/v1/payment-methods/stripe/setup-intent', [$customerPayment, 'createSetupIntent'], [new JWTMiddleware($request), 'check'], [CustomerMiddleware::class, 'check']);
+$router->post('/api/v1/payment-methods/stripe/save', [$customerPayment, 'savePaymentMethod'], [new JWTMiddleware($request), 'check'], [CustomerMiddleware::class, 'check']);
+$router->delete('/api/v1/payment-methods/stripe/{id}', [$customerPayment, 'removeStripePaymentMethod'], [new JWTMiddleware($request), 'check'], [CustomerMiddleware::class, 'check']);
 
 //stripe payment processing
-$router->post('/api/v1/orders/{orderid}/stripe-payment', [$customerPayment, 'processStripePayment'], [CustomerMiddleware::class, 'check']);
-
-// Legacy Payment Processing
-// $router->post('/api/customer/payments/checkout', [$customerPayment, 'checkout'], [CustomerMiddleware::class, 'check']); // LEGACY - COMMENTED OUT
-
+$router->post('/api/v1/orders/{orderid}/stripe-payment', [$customerPayment, 'processStripePayment'], [new JWTMiddleware($request), 'check'], [CustomerMiddleware::class, 'check']);
 // Payment History
-$router->get('/api/v1/payments', [$customerPayment, 'getPaymentHistory'], [CustomerMiddleware::class, 'check']);
-$router->get('/api/v1/payments/{id}', [$customerPayment, 'getPayment'], [CustomerMiddleware::class, 'check']);
-
+$router->get('/api/v1/payments', [$customerPayment, 'getPaymentHistory'], [new JWTMiddleware($request), 'check'], [CustomerMiddleware::class, 'check']);
+$router->get('/api/v1/payments/{id}', [$customerPayment, 'getPayment'], [new JWTMiddleware($request), 'check'], [CustomerMiddleware::class, 'check']);
 // ═══════════════════════════════════════════════════════════════════════════
 // ─────── ADMIN ROUTES ────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════
@@ -142,64 +129,67 @@ $router->get('/api/v1/payments/{id}', [$customerPayment, 'getPayment'], [Custome
 $adminAuth = new AdminAuthController();
 $router->post('/api/admin/login', [$adminAuth, 'login']);
 $router->post('/api/admin/logout', [$adminAuth, 'logout'], null);
-$router->get('/api/admin/user',    [$adminAuth, 'user'], [AdminMiddleware::class, 'check']);
+$router->get('/api/admin/user',    [$adminAuth, 'user'], [new JWTMiddleware($request), 'check']);
 
 // ─────── Dashboard & Statistics ───────
 $statsCtrl = new AdminStatsController();
-$router->get('/api/admin/stats', [$statsCtrl, 'index'], [AdminMiddleware::class, 'check']);
+$router->get('/api/admin/stats', [$statsCtrl, 'index'], [new JWTMiddleware($request), 'check']);
 
 // ─────── Vendor Management ───────
 
 $vendorCtrl = new AdminVendorController();
-$router->get('/api/admin/vendors', [$vendorCtrl, 'index'], [AdminMiddleware::class, 'check']);
-$router->post('/api/admin/vendors', [$vendorCtrl, 'store'], [AdminMiddleware::class, 'check']);
-$router->get('/api/admin/vendors/{id}', [$vendorCtrl, 'show'], [AdminMiddleware::class, 'check']);
-$router->post('/api/admin/vendors/{id}', [$vendorCtrl, 'updateVendorImage'], [AdminMiddleware::class, 'check']);
-$router->put('/api/admin/vendors/{id}', [$vendorCtrl, 'update'], [AdminMiddleware::class, 'check']);
-$router->delete('/api/admin/vendors/delete/{id}', [$vendorCtrl, 'delete'], [AdminMiddleware::class, 'check']);
-$router->get('/api/admin/vendors/{id}/earnings', [$vendorCtrl, 'earningByVendor'], [AdminMiddleware::class, 'check']);
-$router->get('/api/admin/vendors/{id}/orders', [$vendorCtrl, 'ordersByVendor'], [AdminMiddleware::class, 'check']);
+$router->get('/api/admin/vendors', [$vendorCtrl, 'index'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->post('/api/admin/vendors', [$vendorCtrl, 'store'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->get('/api/admin/vendors/{id}', [$vendorCtrl, 'show'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->post('/api/admin/vendors/{id}', [$vendorCtrl, 'updateVendorImage'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->put('/api/admin/vendors/{id}', [$vendorCtrl, 'update'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->delete('/api/admin/vendors/delete/{id}', [$vendorCtrl, 'delete'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->get('/api/admin/vendors/{id}/earnings', [$vendorCtrl, 'earningByVendor'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->get('/api/admin/vendors/{id}/orders', [$vendorCtrl, 'ordersByVendor'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+
 
 // ─────── Food Management ───────
 $foodCtrl = new AdminFoodController();
-$router->get('/api/admin/foods', [$foodCtrl, 'index'], [AdminMiddleware::class, 'check']);
-$router->post('/api/admin/foods', [$foodCtrl, 'store'], [AdminMiddleware::class, 'check']);
-$router->post('/api/admin/foods/image/{id}', [$foodCtrl, 'updateFoodImage'], [AdminMiddleware::class, 'check']);
-$router->get('/api/admin/foods/{id}', [$foodCtrl, 'show'], [AdminMiddleware::class, 'check']);
-$router->put('/api/admin/foods/{id}', [$foodCtrl, 'update'], [AdminMiddleware::class, 'check']); 
-$router->delete('/api/admin/foods/{id}', [$foodCtrl, 'delete'], [AdminMiddleware::class, 'check']);
+$router->get('/api/admin/foods', [$foodCtrl, 'index'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->post('/api/admin/foods', [$foodCtrl, 'store'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->post('/api/admin/foods/image/{id}', [$foodCtrl, 'updateFoodImage'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->get('/api/admin/foods/{id}', [$foodCtrl, 'show'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->put('/api/admin/foods/{id}', [$foodCtrl, 'update'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']); 
+$router->delete('/api/admin/foods/{id}', [$foodCtrl, 'delete'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
 
 // ─────── Inventory Management ───────
-$router->get('/api/admin/foods/{id}/inventory', [$foodCtrl, 'getInventory'], [AdminMiddleware::class, 'check']);
-$router->patch('/api/admin/foods/{id}/inventory/adjust', [$foodCtrl, 'adjustInventory'], [AdminMiddleware::class, 'check']);
+$router->get('/api/admin/foods/{id}/inventory', [$foodCtrl, 'getInventory'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->patch('/api/admin/foods/{id}/inventory/adjust', [$foodCtrl, 'adjustInventory'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+
+// ─────── Order Management ───────
 
 // ─────── Order Management ───────
 $orderCtrl = new AdminOrderController();
-$router->get('/api/admin/orders', [$orderCtrl, 'index'], [AdminMiddleware::class, 'check']);
-$router->get('/api/admin/orders/{orderId}', [$orderCtrl, 'show'], [AdminMiddleware::class, 'check']);
-$router->patch('/api/admin/orders/{id}/status', [$orderCtrl, 'updateStatus'], [AdminMiddleware::class, 'check']);
+$router->get('/api/admin/orders', [$orderCtrl, 'index'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->get('/api/admin/orders/{orderId}', [$orderCtrl, 'show'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->patch('/api/admin/orders/{id}/status', [$orderCtrl, 'updateStatus'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
 
 // ─────── Customer Management ───────
 $customerCtrl = new AdminCustomerController();
-$router->get('/api/admin/customers', [$customerCtrl, 'index'], [AdminMiddleware::class, 'check']);
-$router->post('/api/admin/customers', [$customerCtrl, 'store'], [AdminMiddleware::class, 'check']);
-$router->get('/api/admin/customers/{id}', [$customerCtrl, 'show'], [AdminMiddleware::class, 'check']);
-$router->put('/api/admin/customers/{id}', [$customerCtrl, 'update'], [AdminMiddleware::class, 'check']);
-$router->post('/api/admin/customers/image/{id}', [$customerCtrl, 'updateCustomerImage'], [AdminMiddleware::class, 'check']);
-$router->delete('/api/admin/customers/{id}', [$customerCtrl, 'delete'], [AdminMiddleware::class, 'check']);
+$router->get('/api/admin/customers', [$customerCtrl, 'index'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->post('/api/admin/customers', [$customerCtrl, 'store'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->get('/api/admin/customers/{id}', [$customerCtrl, 'show'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->put('/api/admin/customers/{id}', [$customerCtrl, 'update'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->post('/api/admin/customers/image/{id}', [$customerCtrl, 'updateCustomerImage'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->delete('/api/admin/customers/{id}', [$customerCtrl, 'delete'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
 
 // ─────── Payment Management ───────
 $paymentCtrl = new AdminPaymentController();
-$router->get('/api/admin/payments', [$paymentCtrl, 'index'], [AdminMiddleware::class, 'check']);
-$router->get('/api/admin/payments/{id}', [$paymentCtrl, 'show'], [AdminMiddleware::class, 'check']);
+$router->get('/api/admin/payments', [$paymentCtrl, 'index'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->get('/api/admin/payments/{id}', [$paymentCtrl, 'show'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
 
 // ─────── System Settings ───────
 $settingsCtrl = new AdminSettingsController();
-$router->get('/api/admin/order-statuses', [$settingsCtrl, 'allStatuses'], [AdminMiddleware::class, 'check']);
-$router->post('/api/admin/order-statuses', [$settingsCtrl, 'createStatus'], [AdminMiddleware::class, 'check']);
-$router->get('/api/admin/order-statuses/{key}', [$settingsCtrl, 'getStatus'], [AdminMiddleware::class, 'check']);
-$router->put('/api/admin/order-statuses/{key}', [$settingsCtrl, 'updateStatus'], [AdminMiddleware::class, 'check']);
-$router->delete('/api/admin/order-statuses/{key}', [$settingsCtrl, 'deleteStatus'], [AdminMiddleware::class, 'check']);
+$router->get('/api/admin/order-statuses', [$settingsCtrl, 'allStatuses'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->post('/api/admin/order-statuses', [$settingsCtrl, 'createStatus'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->get('/api/admin/order-statuses/{key}', [$settingsCtrl, 'getStatus'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->put('/api/admin/order-statuses/{key}', [$settingsCtrl, 'updateStatus'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
+$router->delete('/api/admin/order-statuses/{key}', [$settingsCtrl, 'deleteStatus'], [new JWTMiddleware($request), 'check'],[AdminMiddleware::class, 'check']);
 /* ------------------AUTHs---------------------------------- */
 
 

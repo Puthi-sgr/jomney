@@ -61,20 +61,20 @@ class Router{
         throw new NotFoundException("No existing URI found");
     }
 
-    private function runMiddleware(array $middlewares): void
-    {
-        foreach ($middlewares as $mw) {
-            error_log("Running middleware: " . print_r($mw, true));
-            if ($mw === null) continue;          // skip blanks from routes w/ no mws
-            if (is_callable($mw)) {
-                call_user_func($mw);             // e.g. [Class,'method'] or closure
-            } elseif (is_string($mw) && class_exists($mw)) {
-                (new $mw)->handle();             // supports class w/ handle()
-            } else {
-                throw new \RuntimeException("Bad middleware: ".print_r($mw,true));
+        private function runMiddleware(array $middlewares): void
+        {
+            foreach ($middlewares as $mw) {
+                error_log("Running middleware: " . print_r($mw, true));
+                if ($mw === null) continue;          // skip blanks from routes w/ no mws
+                if (is_callable($mw)) {
+                    call_user_func($mw);             // e.g. [Class,'method'] or closure
+                } elseif (is_string($mw) && class_exists($mw)) {
+                    {{ (new $mw($this->request))->check(); }}
+                } else {
+                    throw new \RuntimeException("Bad middleware: ".print_r($mw,true));
+                }
             }
         }
-    }
 
     private function buildParamMap(string $pattern, array $matches): array 
     {   

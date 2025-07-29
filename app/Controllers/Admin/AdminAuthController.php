@@ -19,16 +19,7 @@ class AdminAuthController{
         JWTService::init(); // ensure secrets are loaded
     }
 
-    public function testLogin(): void
-    {
-        $items = $request->input('items', [
-
-        ]);
-
-        // This is just a test method to check if the controller is working
-        Response::success('Admin Auth Controller is working');
-        return;
-    }
+    
 
     /**
      * POST /api/admin/login
