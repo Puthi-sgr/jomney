@@ -252,47 +252,38 @@ class AdminVendorController{
      * P /api/admin/vendors/image/{id}
      * Update an existing vendor's details.
     */
-    public function updateVendorImage(int $vendorId):void{
-        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
-        
-        if (strpos($contentType, 'multipart/form-data') !== false) {
-            $body = $_POST;
-        } else {
+    public function updateVendorImage(int $vendorId): void
+    {
+        // Only accept multipart/form-data
+        if (strpos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') === false) {
             Response::error('Only accept form data', [], 400);
             return;
         }
-        
+
         // Check if vendor exists
         $vendor = $this->vendorModel->find($vendorId);
         if (!$vendor) {
             Response::error('Vendor not found', [], 404);
             return;
         }
-        
-        // Check for image file
-        if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
-            //1. Upload the photo to cloudinary
-             $photoUrl = $this->cloudinaryService->uploadImage(
-                $_FILES['image']['tmp_name'], 
-                "foodDelivery/vendors/vendor-{$vendorId}"
-                //Path of the folders
-            );
 
-            //2. Update the vendor with the path of cloudinary file
-            if($photoUrl){
-                $result = $this->vendorModel->imageUpdate($vendorId, ['image' => $photoUrl]);
-            }
-        } else {
+        // Check for image file
+        if (!isset($_FILES['image']) || $_FILES['image']['error'] !== 0) {
             Response::error("No valid image file provided", [], 400);
             return;
         }
 
-        if(!$result){
-            Response::error("Image upload failed", ["result" => $result], 400);
+        // Upload image and update vendor
+        $photoUrl = $this->cloudinaryService->uploadImage(
+            $_FILES['image']['tmp_name'],
+            "foodDelivery/vendors/vendor-{$vendorId}"
+        );
+        if (!$photoUrl || !$this->vendorModel->imageUpdate($vendorId, ['image' => $photoUrl])) {
+            Response::error("Image upload failed", [], 400);
+            return;
         }
 
         Response::success("Image upload success", [], 200);
-
     }
     /**
      * PUT /api/admin/vendors/{id}
@@ -320,9 +311,7 @@ class AdminVendorController{
             // Let's try to parse raw input as a fallback
             $body = $_POST;
             if (empty($body)) {
-                // Try to parse raw input (for learning: this is tricky with multipart, but let's log it)
                 $rawInput = file_get_contents('php://input');
-                error_log('Raw input for multipart: ' . substr($rawInput, 0, 200)); // just for debug
             }
         } else {
             // For JSON, always use php://input
