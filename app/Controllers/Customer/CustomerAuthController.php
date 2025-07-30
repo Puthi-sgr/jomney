@@ -6,16 +6,18 @@ use App\Core\JWTService;
 use App\Models\Customer;
 use App\Traits\ValidationTrait;
 use App\Core\CloudinaryService;
+use App\Core\Request;
 class CustomerAuthController{
-    
+
     use ValidationTrait;
     private Customer $customerModel;
     private CloudinaryService $cloudinaryService;
+    private Request $request;
    
     //Initialize connection to the admin
     public function __construct()
     {
-
+        $this->request = new Request();
         $this->customerModel = new Customer();
         $this->cloudinaryService = new CloudinaryService();
         JWTService::init(); // ensure secrets are loaded
@@ -28,7 +30,7 @@ class CustomerAuthController{
      */
     public function register(): void
     {
-        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        $body = $this->request->all();
 
         // Only require email, password, and name
         $email    = $body['email']    ?? null;
@@ -70,7 +72,7 @@ class CustomerAuthController{
      */
     public function login(): void
     {
-        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        $body = $this->request->all();
         $email = $body['email'] ?? '';
         $password = $body['password'] ?? '';
 
@@ -147,7 +149,7 @@ class CustomerAuthController{
     public function updateProfile(): void
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
-        $body   = json_decode(file_get_contents('php://input'), true) ?? [];
+        $body   = $this->request->all();
 
         // Allow name / phone / address; ignore others
         $allowed = array_intersect_key($body, array_flip(['name', 'phone', 'address']));

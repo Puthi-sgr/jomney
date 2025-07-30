@@ -7,6 +7,7 @@ use App\Core\JWTService;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Order;
+use App\Core\Request;
 use Stripe\Stripe;
 use Stripe\PaymentIntent;
 use Stripe\Webhook;
@@ -18,10 +19,12 @@ class PaymentController{
     private Payment $paymentModel;
     private PaymentMethod $paymentMethodModel;
     private Order $orderModel;
+    private Request $request;
 
     public function __construct()
     {
         Stripe::setApiKey($_ENV['STRIPE_SECRET_KEY']);
+        $this->request = new Request();
         $this->paymentModel = new Payment();
         $this->paymentMethodModel = new PaymentMethod();
         $this->orderModel = new Order();
@@ -36,7 +39,7 @@ class PaymentController{
      */
     public function createPaymentIntent(): void
     {
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = $this->request->all();
         
         $orderId = (int)($data['order_id'] ?? 0);
         $paymentMethodId = (int)($data['payment_method_id'] ?? 0);

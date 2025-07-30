@@ -3,13 +3,16 @@ namespace App\Controllers\Admin;
 
 use App\Core\Response;
 use App\Models\OrderStatus;
+use App\Core\Request;
 
 class AdminSettingsController
 {
     private OrderStatus $statusModel;
+    private Request $request;
 
     public function __construct()
     {
+        $this->request = new Request();
         $this->statusModel = new OrderStatus();
     }
 
@@ -30,7 +33,7 @@ class AdminSettingsController
      */
     public function createStatus(): void
     {
-        $body = json_decode(file_get_contents('php://input'), true);
+        $body = $this->request->all();
         $key   = $body['key']   ?? '';
         $label = $body['label'] ?? '';
         if (!$key || !$label) {
@@ -69,7 +72,7 @@ class AdminSettingsController
 
     public function updateStatus(string $key): void
     {
-        $body = json_decode(file_get_contents('php://input'), true);
+        $body = $this->request->all();
         $label = $body['label'] ?? '';
         if (!$label) {
             Response::error('Label is required', [], 422);

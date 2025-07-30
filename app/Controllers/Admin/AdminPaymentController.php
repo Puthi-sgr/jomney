@@ -3,13 +3,16 @@ namespace App\Controllers\Admin;
 
 use App\Core\Response;
 use App\Models\Payment;
+use App\Core\Request;
 
 class AdminPaymentController{
 
     private Payment $paymentModel;
+    private Request $request;
 
     public function __construct()
     {
+        $this->request = new Request();
         $this->paymentModel = new Payment();
     }
 

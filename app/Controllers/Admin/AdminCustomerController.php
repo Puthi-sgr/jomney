@@ -4,14 +4,17 @@ namespace App\Controllers\Admin;
 use App\Core\Response;
 use App\Models\Customer;
 use App\Core\CloudinaryService;
+use App\Core\Request;
 
 class AdminCustomerController
 {
     private Customer $customerModel;
     private CloudinaryService $cloudinaryService;
+    private Request $request;
 
     public function __construct()
     {
+        $this->request = new Request();
         $this->customerModel = new Customer();
         $this->cloudinaryService = new CloudinaryService();
     }
@@ -53,7 +56,7 @@ class AdminCustomerController
      */
     public function store(): void
     {
-        $input = json_decode(file_get_contents('php://input'), true);
+        $input = $this->request->all();
         
         // Validate required fields
         $requiredFields = ['email', 'password', 'name'];
@@ -166,7 +169,7 @@ class AdminCustomerController
             return;
         }
 
-        $input = json_decode(file_get_contents('php://input'), true);
+        $input = $this->request->all();
         
         // Validate email format if provided
         if (isset($input['email']) && !filter_var($input['email'], FILTER_VALIDATE_EMAIL)) {
