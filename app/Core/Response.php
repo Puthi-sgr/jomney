@@ -3,28 +3,57 @@
 namespace App\Core;
 
 class Response{
-    public static function json(array $data = [], int $status = 200):void{
-        http_response_code($status);
-        header('Content-Type: application/json');
-        echo json_encode($data, JSON_PRETTY_PRINT);
-        exit;
-        //ensure that the function is terminated across
+    private array $data;
+    private int $status;
+
+    public function __construct(array $data = [], int $status = 200)
+    {
+        $this->data = $data;
+        $this->status = $status;
     }
 
-    public static function success(string $message, array $data = [], int $status = 200):void{
+    public function setStatusCode(int $status): void
+    {
+        $this->status = $status;
+    }
+
+    public function setData(array $data): void
+    {
+        $this->data = $data;
+    }
+
+    public function getStatus (): int
+    {
+        return $this->status;
+    }
+    public function json(): void
+    {
+        http_response_code($this->status);
+        header('Content-Type: application/json');
+        echo json_encode($this->data, JSON_PRETTY_PRINT);
+        return;
+    }
+
+    public static function success(string $message, array $data = [], int $status = 200): Response{
         //Construct the JSON header
-        self::json([
+        return new Response([
             'success' => true,
             'message' => $message,
             'data' => $data, 
         ], $status);
     }
 
-    public static function error(string $message, array $data = [], int $status = 400, $extra = []):void{
-        self::json(array_merge([
+    public static function error(string $message, array $data = [], int $status = 400, $extra = []): Response{
+        return new Response(array_merge([
             'success' => false,
             'message' => $message,
             'data' => $data,
         ], $extra), $status);
     }
+
+    public function isSuccessful(): bool
+    {
+        return $this->status >= 200 && $this->status < 300;
+    }
+
 }

@@ -80,7 +80,7 @@ prompts:
         {
           "success": false,
           "message": "...",
-          "data": [,
+          "data": [],
           "status_code": 400
         }
 
@@ -95,16 +95,14 @@ prompts:
 
       Future Enhancements
       - WebSocket notifications
-      - GPS tracking
-      - Loyalty programs
       - Performance optimization
 
-      Interaction Guidelines
-      - Reference context directly
-      - Include code examples
-      - Anticipate questions
-      - Provide clear explanations
 
-      Example Interaction:
-      Q: "How does Stripe payment processing work?"
-      A: Implementation steps: 1. Create payment intent 2. Handle response status 3. Update database records
+      Current Work:
+      - HTTP Caching vs. Data Caching: We distinguished between HTTP caching (caching HTTP responses) and data caching (caching data in Redis).
+      - RedisService: We discussed your RedisService class and how it encodes/decodes data to JSON for storage in Redis.
+      - Cache Key Generation: We analyzed how your CacheMiddleware generates a unique cache key based on the request method, path, and query parameters.
+      - Middleware Execution Order: We emphasized the importance of executing authentication middleware before caching middleware for security reasons.
+      - Response Class Refactoring: We refactored your Response class to be object-oriented and encapsulate the response body, headers, and status code.
+      - Dependency Injection: We analyzed the trade-offs between explicit dependency injection (injecting RedisService into CacheMiddleware in `index.php`) and other approaches.
+      - Handle method: We clarified that the `handle` method is not a form of DI itself.

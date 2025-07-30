@@ -9,14 +9,17 @@ class RedisService
     private int $defaultTtl;
 
     //Its like a controller to communicate with actual redis in the backend
-    public function __construct(array $config)
+    public function __construct()
     {
+
         $this->client = new Client([
             'scheme' => 'tcp',
-            'host'   => $config['host'],
-            'port'   => $config['port'],
+            'host'   => (string) $_ENV['REDIS_HOST'] ?? 'redis',
+            'port'   => (int) $_ENV['REDIS_PORT'] ?? 6379,
         ]);
         $this->defaultTtl  = $config['ttl'] ?? 300;
+
+        error_log("Redis client initialized with host: " . $this->client->getConnection()->getParameters()->host . " and port: " . $this->client->getConnection()->getParameters()->port);
     }
 
     /* ---------- Cache helpers ---------- */
@@ -51,7 +54,9 @@ class RedisService
     }
     public function get(string $key, mixed $default = null): mixed
     {
-        $decodeJson = $this->decode($this->client->get($key));
+
+        
+        $decodeJson = $this->decode((string) $this->client->get($key));
         return $this->client->exists($key)
             ? $decodeJson
             : $default;
@@ -61,7 +66,10 @@ class RedisService
     private function encode(mixed $v): string  { 
         return json_encode($v, JSON_THROW_ON_ERROR); 
     }
-    private function decode(string $v): mixed { 
-        return json_decode($v, true, 512, JSON_THROW_ON_ERROR); 
+    private function decode(string $v): mixed {
+        if (empty($v)) {
+            return null; // Or any other appropriate default value
+        }
+        {{ return json_decode($v, true, 512, JSON_THROW_ON_ERROR); }}
     }
 }

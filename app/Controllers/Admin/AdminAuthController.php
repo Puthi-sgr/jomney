@@ -10,12 +10,14 @@ use App\Models\Admin;
 class AdminAuthController{
     private Admin $adminModel;
     private Request $request;
+    private Response $response;
 
     //Initialize connection to the admin
     public function __construct()
     {
         $this->request = new Request();
         $this->adminModel = new Admin();
+        $this->response = new Response();
         JWTService::init(); // ensure secrets are loaded
     }
 
@@ -26,11 +28,10 @@ class AdminAuthController{
      * Request: { "email": "...", "password": "..." }
      * Response: { success, message, data: { token, admin_id } }
      */
-    public function login(): void{
+    public function login(){
         
         if (!$this->request->isJson()) {
-            Response::error('Content-Type must be application/json', [], 400);
-            return;
+           return Response::error('Invalid content type, expected application/json', [], 400);
         }
  
         
@@ -41,8 +42,7 @@ class AdminAuthController{
          // 1) Find admin by email ** from the admin model**
         $admin = $this->adminModel->findByEmail($email);
         if (!$admin || !password_verify($password, $admin['password'])) {
-            Response::error('Invalid credentials', [], 401);
-            return;
+           return Response::error('Invalid email or password', [], 401);
         }
 
         // 2) Generate a JWT with "sub" = admin_id and add a "role" claim
@@ -55,8 +55,9 @@ class AdminAuthController{
 
         // 3) Return token
 
-        Response::success('Login successful', ['token' => $token, 'admin_id' => $userId]);
-        return;
+        return Response::success('Login successful', ['token' => $token]);
+         // 4) Set the token in the response header
+        
     }
 
     public function logout(): void
@@ -75,11 +76,11 @@ class AdminAuthController{
     {
         // JWTMiddleware (see next section) will have validated the token
         // and put the admin’s ID into $_SERVER['admin_id'].
-        $adminId = (int) ($_SERVER['admin_id'] ?? 0);
+        $adminId = (int) ($_SERVER['user_id'] ?? 0);
         $admin   = $this->adminModel->find($adminId);
 
         if (!$admin) {
-            Response::error('Admin not found', [], 404);
+            Response::error('Admin not found in ctr', [], 404);
             return;
         }
 

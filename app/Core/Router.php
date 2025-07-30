@@ -31,7 +31,12 @@ class Router{
          /* 1. exact match */
         if ($route) {
             $this->runMiddleware($route['middleware']);
-            $this->callAction($route['action']);
+            $controllerResult = $this->callAction($route['action']);
+            if ($controllerResult instanceof Response) {
+                    $controllerResult->json();           // send status + body
+            } elseif (is_string($controllerResult)) {
+                    echo $controllerResult;              // fallback for legacy routes
+            }
             return;
         }
         
@@ -53,7 +58,13 @@ class Router{
                 );
 
                 $this->runMiddleware($route['middleware']);
-                $this->callAction($route['action'], $params);
+                $controllerResult = $this->callAction($route['action'], $params);
+
+                if ($controllerResult instanceof Response) {
+                    $controllerResult->json();           // send status + body
+                } elseif (is_string($controllerResult)) {
+                    echo $controllerResult;              // fallback for legacy routes
+                }
                 return;
             }
         }
@@ -61,20 +72,32 @@ class Router{
         throw new NotFoundException("No existing URI found");
     }
 
-        private function runMiddleware(array $middlewares): void
-        {
-            foreach ($middlewares as $mw) {
-                error_log("Running middleware: " . print_r($mw, true));
-                if ($mw === null) continue;          // skip blanks from routes w/ no mws
-                if (is_callable($mw)) {
-                    call_user_func($mw);             // e.g. [Class,'method'] or closure
-                } elseif (is_string($mw) && class_exists($mw)) {
-                    {{ (new $mw($this->request))->check(); }}
-                } else {
-                    throw new \RuntimeException("Bad middleware: ".print_r($mw,true));
-                }
-            }
+       private function runMiddleware(array $middlewares): void
+{
+    $next = function (Request $request) {
+        $this->callAction($this->routes[$request->method()][$request->path()]['action']);
+    };
+
+    foreach ($middlewares as $mw) {
+        error_log("Middleware length: " . count($middlewares));
+        error_log("Running middleware: " . (is_string($mw) ? $mw : get_class($mw)));
+        error_log("Is callable: " . (is_callable($mw) ? 'yes' : 'no'));
+
+        if ($mw === null) continue;          // skip blanks from routes w/ no mws
+
+        if (is_callable($mw)) {
+            error_log("Calling callable middleware");
+            call_user_func($mw, $this->request, $next);         
+            error_log("Callable middleware finished");
+        } elseif (is_string($mw) && class_exists($mw)) {
+            error_log("Calling string-based middleware");
+            (new $mw($this->request))->handle($this->request, $next);
+            error_log("String-based middleware finished");
+        } else {
+            throw new \RuntimeException("Bad middleware: ".print_r($mw,true));
         }
+    }
+}
 
     private function buildParamMap(string $pattern, array $matches): array 
     {   
@@ -96,7 +119,7 @@ class Router{
 
     // Call action checks whether it is a controller method or closure
     // and injects Request as first argument if needed
-    private function callAction(callable|array $action, array $routeParams = []): void
+    private function callAction(callable|array $action, array $routeParams = []): Response
     {
         // if action expects a Request first argument, give it
         // e.g. action = [ControllerClass, 'methodName'] or Closure
@@ -115,7 +138,7 @@ class Router{
         $args = array_merge($args, $routeParams);
 
         //A smart way to call the action pair it with the params
-        $ref->invokeArgs(
+        return $ref->invokeArgs(
             is_array($action) ? $action[0] : null,
             $args
         );

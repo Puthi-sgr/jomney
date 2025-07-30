@@ -12,17 +12,27 @@ use Exception;
 
 class JWTMiddleware{
 
-    private Request $request;
 
-    //The request is no longer instantiated, instead inject through param
-    public function __construct(Request $request)
+    //The req is no longer instantiated, instead inject through param
+    public function __construct(Request $req)
     {
-        $this->request = $request;
+        $this->req = $req;
     }
-    public function check():void {
-        //Get authorization
-        $authHeader = $this->request->header('Authorization');
 
+    public function __invoke(Request $req, callable $next): void
+    {
+        //This is the entry point for the middleware
+        $this->req = $req; // Store the request for later use
+        $this->handle($req, $next);
+        //Call the next middleware or controller
+      
+    }
+    
+    public function handle(Request $req, callable $next):void {
+        //Get authorization
+        $authHeader = $this->req->header('Authorization');
+         
+           
         if (!$authHeader) {
             Response::error('Authorization header not found', [], 401);
             return;
@@ -36,9 +46,8 @@ class JWTMiddleware{
 
         $token = $matches[1];
 
-        // Debug: Log the token we extracted
-        error_log("Extracted token: " . $token);
-        error_log("Token length: " . strlen($token));
+
+        
 
         try{
             //2. Validate the token
@@ -52,6 +61,7 @@ class JWTMiddleware{
 
             if(!$userId || !$userRole) {
                 Response::error('Invalid token payload', [], 401);
+                $next($req);
                 return;
             }
 
@@ -71,20 +81,14 @@ class JWTMiddleware{
                 return;
             }
 
+            
             $_SERVER['user_id'] = $userId;
             $_SERVER['user_role'] = $userRole; 
+            $next($req);
             
-           //Adding these checking logic adds overhead to performance
-            if($userRole === 'admin') {
-                AdminMiddleware::check();
-            } else if($userRole === 'customer') {
-                CustomerMiddleware::check();
-            } else {
-                Response::error('Forbidden: Invalid user role', [], 403);
-                return;
-            }
         }catch(Exception $e){
             Response::error('Invalid token', ["stackTrace" => $e->getTrace()], 401);
+            $next($req);
         }
     }
 
