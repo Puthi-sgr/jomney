@@ -4,14 +4,17 @@ namespace App\Controllers\Admin;
 use App\Core\Response;
 use App\Core\Database;
 use PDO;
+use App\Core\Request;
 
 class AdminStatsController
 {
     private PDO $db;
+    private Request $request;
 
     public function __construct()
     {
-         $this->db = Database::getConnection(); 
+         $this->request = new Request();
+         $this->db = Database::getConnection();
     }
 
     /**

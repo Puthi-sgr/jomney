@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\FoodOrder;
 use App\Models\OrderStatus;
 use App\Models\Vendor;
+use App\Core\Request;
 
 class CustomerOrderController
 {
@@ -15,9 +16,11 @@ class CustomerOrderController
     private FoodOrder $foodOrderModel;
     private OrderStatus $orderStatusModel;
     private Vendor $vendorModel;
+    private Request $request;
 
-    public function __construct() 
+    public function __construct()
     {
+        $this->request = new Request();
         $this->orderModel = new Order();
         $this->customerModel = new Customer();
         $this->foodOrderModel = new FoodOrder();
@@ -28,7 +31,7 @@ class CustomerOrderController
     /** POST /orders */
     public function store(): void
     {
-        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        $body = $this->request->all();
 
         $items = $body['items'] ?? [];
         $remarks = $body['remarks'] ?? '';

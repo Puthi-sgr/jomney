@@ -7,6 +7,7 @@ use App\Models\Vendor;
 use App\Core\CloudinaryService;
 use App\Models\Food;
 use App\Models\FoodOrder;
+use App\Core\Request;
 
 class AdminVendorController{
 
@@ -16,7 +17,9 @@ class AdminVendorController{
     private Food $foodModel;
     private CloudinaryService $cloudinaryService;
     private FoodOrder $foodOrderModel;
+    private Request $request;
     public function __construct(){
+        $this->request = new Request();
         $this->vendorModel = new Vendor();
         $this->foodModel = new Food();
         $this->cloudinaryService = new CloudinaryService();
@@ -121,9 +124,9 @@ class AdminVendorController{
         if (strpos($contentType, 'multipart/form-data') !== false) {
             // Handle form-data (with file upload)
             $body = $_POST;
-              
+
         } else {
-              $body = json_decode(file_get_contents('php://input'), true);
+              $body = $this->request->all();
               
                
             // Check if JSON parsing failed
@@ -299,28 +302,22 @@ class AdminVendorController{
         }
 
         // 2) Parse the request body - handle both JSON and form-data
-        // Use php://input for all content types, and parse accordingly
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
 
         // Initialize $body as null
         $body = null;
 
-        // If multipart/form-data, use $_POST (php://input is not parsed automatically)
+        // If multipart/form-data, use $_POST
         if (strpos($contentType, 'multipart/form-data') !== false) {
-            // Sometimes, $_POST may be empty if the form is not encoded properly
-            // Let's try to parse raw input as a fallback
             $body = $_POST;
             if (empty($body)) {
                 $rawInput = file_get_contents('php://input');
             }
         } else {
-            // For JSON, always use php://input
-            $rawInput = file_get_contents('php://input');
-            $body = json_decode($rawInput, true);
-
-            // Check if JSON parsing failed
-            if ($body === null && json_last_error() !== JSON_ERROR_NONE) {
-                Response::error('Invalid JSON format: ' . json_last_error_msg(), [], 400);
+            // For JSON, use Request helper
+            $body = $this->request->all();
+            if ($body === null) {
+                Response::error('Invalid JSON format', [], 400);
                 return;
             }
         }
