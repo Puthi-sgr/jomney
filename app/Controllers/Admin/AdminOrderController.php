@@ -8,6 +8,7 @@ use App\Models\FoodOrder;
 use App\Models\Food;
 use App\Models\Customer;
 use App\Models\Vendor;
+use App\Core\Request;
 
 class AdminOrderController
 {
@@ -16,8 +17,12 @@ class AdminOrderController
     private FoodOrder $foodOrderModel;
     private Food $foodModel;
     private Customer $customerModel;
-    private Vendor $vendorModel;                                                                                                     public function __construct()
+    private Vendor $vendorModel;
+    private Request $request;
+
+    public function __construct()
     {
+        $this->request        = new Request();
         $this->orderModel     = new Order();
         $this->statusModel    = new OrderStatus();
         $this->foodOrderModel = new FoodOrder();
@@ -98,7 +103,7 @@ class AdminOrderController
             return;
         }
 
-        $body = json_decode(file_get_contents('php://input'), true);
+        $body = $this->request->all();
         $newKey = $body['status_key'] ?? '';
         if (!$newKey) {
             Response::error('status_key is required', [], 422);

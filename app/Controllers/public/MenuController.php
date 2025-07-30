@@ -3,13 +3,16 @@ namespace App\Controllers\Public;
 
 use App\Core\Response;
 use App\Models\Food;
+use App\Core\Request;
 
 class MenuController
 {
     private Food $foodModel;
+    private Request $request;
 
     public function __construct()
     {
+        $this->request = new Request();
         $this->foodModel = new Food();
     }
 

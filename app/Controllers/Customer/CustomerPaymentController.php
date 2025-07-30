@@ -12,6 +12,7 @@ use Stripe\Stripe;
 use Stripe\Customer as StripeCustomer;
 use Stripe\PaymentMethod as StripePaymentMethod;
 use Stripe\SetupIntent;
+use App\Core\Request;
 use Exception;
 
 class CustomerPaymentController
@@ -21,10 +22,12 @@ class CustomerPaymentController
     private PaymentMethod $paymentMethodModel;
     private Order $orderModel;
     private Customer $customerModel;
+    private Request $request;
 
     public function __construct()
     {
         Stripe::setApiKey($_ENV['STRIPE_SECRET_KEY']);
+        $this->request = new Request();
         $this->paymentModel = new Payment();
         $this->paymentController = new PaymentController();
         $this->paymentMethodModel = new PaymentMethod();
@@ -82,7 +85,7 @@ public function getPaymentMethods(): void
     public function savePaymentMethod(): void
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
-        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        $body = $this->request->all();
 
         $paymentMethodId = $body['payment_method_id'] ?? '';
 
@@ -140,7 +143,7 @@ public function getPaymentMethods(): void
     public function addPaymentMethod(): void
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
-        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        $body = $this->request->all();
 
         // Validate required fields
         if (empty($body['type'])) {
@@ -234,7 +237,7 @@ public function getPaymentMethods(): void
     {
         //1. Grab the customer id and body from the request
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
-        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        $body = $this->request->all();
         /*
                 {
                     "required_fields": {
@@ -498,7 +501,7 @@ public function getPaymentMethods(): void
     public function processMockPayment(int $orderId): void
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
-        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        $body = $this->request->all();
 
         // 1. Verify the order belongs to the customer and is pending
         $order = $this->orderModel->findOrderForCustomer($orderId, $customerId);

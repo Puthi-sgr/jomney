@@ -4,9 +4,10 @@ namespace App\Controllers\Admin;
 use App\Core\Response;
 use App\Traits\ValidationTrait;
 use App\Models\Food;
-use App\Models\Vendor; 
+use App\Models\Vendor;
 use App\Models\Inventory;
 use App\Core\CloudinaryService;
+use App\Core\Request;
 use Cloudinary\Cloudinary;
 
 class AdminFoodController{
@@ -16,9 +17,11 @@ class AdminFoodController{
     private Vendor $vendorModel;
     private Inventory $inventoryModel;
     private CloudinaryService $cloudinaryService;
+    private Request $request;
 
     public function __construct()
     {
+        $this->request = new Request();
         $this->foodModel   = new Food();
         $this->vendorModel = new Vendor();
         $this->inventoryModel = new Inventory();
@@ -144,7 +147,7 @@ class AdminFoodController{
             return;
         }
 
-        $body = json_decode(file_get_contents('php://input'), true);
+        $body = $this->request->all();
         
         // Validate delta
         if (!isset($body['delta']) || !is_numeric($body['delta'])) {
@@ -200,7 +203,7 @@ class AdminFoodController{
         if (strpos($contentType, 'multipart/form-data') !== false) {
             $body = $_POST;
         } else {
-            $body = json_decode(file_get_contents('php://input'), true);
+            $body = $this->request->all();
         }
 
         // DEBUG: Log the $_FILES structure
@@ -403,7 +406,7 @@ class AdminFoodController{
             return;
         }
 
-        $body = json_decode(file_get_contents('php://input'), true);
+        $body = $this->request->all();
         $updateData = [];
 
         // If vendor is updated
