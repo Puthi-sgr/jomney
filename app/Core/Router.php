@@ -47,8 +47,10 @@ class Router{
         
         // Check for dynamic routes
         foreach ($this->routes[$method] ?? [] as $pattern => $route) {
-            // Convert {id} to regex pattern
-            $regex = preg_replace('/\{([^}]+)\}/', '(\d+)', $pattern);
+            // Convert {param} placeholders to a generic regex pattern that
+            // captures any URI segment except a slash. This allows IDs or
+            // slugs (e.g. `/api/v1/food/1` or `/api/v1/vendor/abc-123`).
+            $regex = preg_replace('/\{([^}]+)\}/', '([^/]+)', $pattern);
             $regex = '#^' . $regex . '$#';
             
             if (preg_match($regex, $uri, $matches)) {
