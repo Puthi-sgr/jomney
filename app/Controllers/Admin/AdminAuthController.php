@@ -60,10 +60,10 @@ class AdminAuthController{
         
     }
 
-    public function logout(): void
+    public function logout(): Response
     {
         // In a real app, you might revoke the token or add to blacklist.
-        Response::success('Logged out successfully');
+        return Response::success('Logged out successfully');
     }
 
     /**
@@ -72,7 +72,7 @@ class AdminAuthController{
      * JWT must include {"sub": admin_id, "role": "admin"}.
      */
 
-     public function user(): void
+     public function user(): Response
     {
         // JWTMiddleware (see next section) will have validated the token
         // and put the admin’s ID into $_SERVER['admin_id'].
@@ -80,13 +80,11 @@ class AdminAuthController{
         $admin   = $this->adminModel->find($adminId);
 
         if (!$admin) {
-            Response::error('Admin not found in ctr', [], 404);
-            return;
+            return Response::error('Admin not found in ctr', [], 404);
         }
 
         // Omit password field
         unset($admin['password']);
-        Response::success('Admin profile', $admin);
-        return;
+        return Response::success('Admin profile', $admin);
     }
 }

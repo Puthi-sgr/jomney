@@ -23,38 +23,35 @@ class AdminCustomerController
      * GET /api/admin/customers
      * List all customers
      */
-    public function index(): void
+    public function index(): Response
     {
         $customers = $this->customerModel->all();
         if (!$customers) {
-            Response::error('No customers found', [], 404);
-            return;
+            return Response::error('No customers found', [], 404);
         }
-        Response::success('Customers list', $customers);
+        return Response::success('Customers list', $customers);
     }
 
     /**
      * GET /api/admin/customers/{id}
      * View a single customer
      */
-    public function show(int $customerId): void
+    public function show(int $customerId): Response
     {
         $customer = $this->customerModel->find($customerId);
         if (!$customer) {
-            Response::error('Customer not found', [], 404);
-            return;
+            return Response::error('Customer not found', [], 404);
         }
         // Remove password
         unset($customer['password']);
-        Response::success('Customer details', $customer);
-        return;
+        return Response::success('Customer details', $customer);
     }
     
     /**
      * POST /api/admin/customers
      * Create a new customer
      */
-    public function store(): void
+    public function store(): Response
     {
         $input = $this->request->all();
         
@@ -62,22 +59,19 @@ class AdminCustomerController
         $requiredFields = ['email', 'password', 'name'];
         foreach ($requiredFields as $field) {
             if (empty($input[$field])) {
-                Response::error("Field '{$field}' is required", [], 400);
-                return;
+                return Response::error("Field '{$field}' is required", [], 400);
             }
         }
 
         // Validate email format
         if (!filter_var($input['email'], FILTER_VALIDATE_EMAIL)) {
-            Response::error('Invalid email format', [], 400);
-            return;
+            return Response::error('Invalid email format', [], 400);
         }
 
         // Check if email already exists
         $existingCustomer = $this->customerModel->findByEmail($input['email']);
         if ($existingCustomer) {
-            Response::error('Email already exists', [], 409);
-            return;
+            return Response::error('Email already exists', [], 409);
         }
 
         // Prepare customer data
@@ -94,9 +88,9 @@ class AdminCustomerController
         $result = $this->customerModel->create($customerData);
         
         if ($result) {
-            Response::success('Customer created successfully', [], 201);
+            return Response::success('Customer created successfully', [], 201);
         } else {
-            Response::error('Failed to create customer', [], 500);
+            return Response::error('Failed to create customer', [], 500);
         }
     }
 
@@ -104,22 +98,20 @@ class AdminCustomerController
      * POST /api/admin/customers/image/{id}
      * Update a customer's image
      */
-    public function updateCustomerImage(int $customerId): void
+    public function updateCustomerImage(int $customerId): Response
     {
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
         
         if (strpos($contentType, 'multipart/form-data') !== false) {
             $body = $_POST;
         } else {
-            Response::error('Only accept form data', [], 400);
-            return;
+            return Response::error('Only accept form data', [], 400);
         }
         
         // Check if customer exists
         $customer = $this->customerModel->find($customerId);
         if (!$customer) {
-            Response::error('Customer not found', [], 404);
-            return;
+            return Response::error('Customer not found', [], 404);
         }
         
         // Check for image file
@@ -141,48 +133,42 @@ class AdminCustomerController
                 $result = $this->customerModel->imageUpdate($customerId, ['image' => $photoUrl]);
                 error_log("DB update result: " . ($result ? 'SUCCESS' : 'FAILED'));
             } else {
-                Response::error("Image upload to Cloudinary failed", [], 500);
-                return;
+                return Response::error("Image upload to Cloudinary failed", [], 500);
             }
         } else {
-            Response::error("No valid image file provided", [], 400);
-            return;
+            return Response::error("No valid image file provided", [], 400);
         }
 
         if (!$result) {
-            Response::error("Image upload failed", ["result" => $result], 500);
-            return;
+            return Response::error("Image upload failed", ["result" => $result], 500);
         }
 
-        Response::success("Image upload success", [], 200);
+        return Response::success("Image upload success", [], 200);
     }
 
     /**
      * PUT /api/admin/customers/{id}
      * Update a customer
      */
-    public function update(int $customerId): void
+    public function update(int $customerId): Response
     {
         $customer = $this->customerModel->find($customerId);
         if (!$customer) {
-            Response::error('Customer not found', [], 404);
-            return;
+            return Response::error('Customer not found', [], 404);
         }
 
         $input = $this->request->all();
         
         // Validate email format if provided
         if (isset($input['email']) && !filter_var($input['email'], FILTER_VALIDATE_EMAIL)) {
-            Response::error('Invalid email format', [], 400);
-            return;
+            return Response::error('Invalid email format', [], 400);
         }
 
         // Check if email already exists (excluding current customer)
         if (isset($input['email']) && $input['email'] !== $customer['email']) {
             $existingCustomer = $this->customerModel->findByEmail($input['email']);
             if ($existingCustomer) {
-                Response::error('Email already exists', [], 409);
-                return;
+                return Response::error('Email already exists', [], 409);
             }
         }
 
@@ -197,16 +183,15 @@ class AdminCustomerController
         }
 
         if (empty($updateData)) {
-            Response::error('No valid fields to update', [], 400);
-            return;
+            return Response::error('No valid fields to update', [], 400);
         }
 
         $result = $this->customerModel->update($customerId, $updateData);
-        
+
         if ($result) {
-            Response::success('Customer updated successfully');
+            return Response::success('Customer updated successfully');
         } else {
-            Response::error('Failed to update customer', [], 500);
+            return Response::error('Failed to update customer', [], 500);
         }
     }
 
@@ -214,20 +199,17 @@ class AdminCustomerController
      * DELETE /api/admin/customers/{id}
      * Delete a customer (cascade deletes orders, payment methods, etc.)
      */
-    public function delete(int $customerId): void
+    public function delete(int $customerId): Response
     {
         $customer = $this->customerModel->find($customerId);
         if (!$customer) {
-            Response::error('Customer not found', [], 404);
-            return;
+            return Response::error('Customer not found', [], 404);
         }
         $result = $this->customerModel->delete($customerId);
         if (!$result) {
-            Response::error('Failed to delete customer', [], 500);
-            return;
-        } 
+            return Response::error('Failed to delete customer', [], 500);
+        }
 
-        Response::success("Customer deleted", [], 200);
-        return;
+        return Response::success("Customer deleted", [], 200);
     }
 }

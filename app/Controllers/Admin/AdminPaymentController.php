@@ -20,24 +20,22 @@ class AdminPaymentController{
      * GET /api/admin/payments
      * List all payments
      */
-    public function index(): void
+    public function index(): Response
     {
         $payments = $this->paymentModel->all();
-        Response::success('All payments', $payments);
+        return Response::success('All payments', $payments);
     }
 
     /**
      * GET /api/admin/payments/{id}
      * View a single payment by ID
      */
-    public function show(int $id): void
+    public function show(int $id): Response
     {
         $payment = $this->paymentModel->find($id);
         if (!$payment) {
-            Response::error('Payment not found', [], 404);
-            return;
+            return Response::error('Payment not found', [], 404);
         }
-        Response::success('Payment details', $payment);
-        return;
+        return Response::success('Payment details', $payment);
     }
 }

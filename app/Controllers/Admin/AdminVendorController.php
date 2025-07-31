@@ -57,7 +57,7 @@ class AdminVendorController{
      * GET /api/admin/vendors/{id}
      * View a single vendor by ID.
      */
-    public function show(int $id): void
+    public function show(int $id): Response
     {
         $vendor = $this->vendorModel->find($id);
         $food = $this->foodModel->allByVendor($vendor['id']);
@@ -67,19 +67,17 @@ class AdminVendorController{
         unset($vendor['password']);
         unset($food['vendor_id']);
         if (!$vendor) {
-            Response::error('Vendor not found', [
-              
-            ], 404); 
-            return;
+            return Response::error('Vendor not found', [
+
+            ], 404);
         }
-        Response::success('Vendor details',  [
+        return Response::success('Vendor details',  [
                 "vendor" => $vendor,
                 "foods" => $food,
                 "revenue" => $revenue,
                 "totalOrders" => $totalOrders,
                 "foodOrders" => $foodOrders
             ]);
-        return;
     }
 
     public function foodTypeFormat($foodTypes){
@@ -115,7 +113,7 @@ class AdminVendorController{
          * "food_types":["thai","burgers"], "image":"https://..." }
      */
 
-    public function store():void {
+    public function store(): Response {
         
         // Check if it's a file upload (form-data) or JSON
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
@@ -137,16 +135,13 @@ class AdminVendorController{
         }
         // 2) Validate required fields
         if (empty($body['email']) || !filter_var($body['email'], FILTER_VALIDATE_EMAIL)) {
-            Response::error('Valid email required', [$contentType], 422);
-            return;
+            return Response::error('Valid email required', [$contentType], 422);
         }
         if (strlen($body['password'] ?? '') < 6) {
-            Response::error('Password must be at least 6 chars', [], 422);
-            return;
+            return Response::error('Password must be at least 6 chars', [], 422);
         }
         if (!$this->validateText($body['name'] ?? '', 1, 100)) {
-            Response::error('Valid name required', [], 422);
-            return;
+            return Response::error('Valid name required', [], 422);
         }
 
      
@@ -188,19 +183,17 @@ class AdminVendorController{
         
         if (!$vendorId) {
 
-            Response::error('Failed to create vendor', [], 500);
-            return;
-        } 
+            return Response::error('Failed to create vendor', [], 500);
+        }
 
-        Response::success('Vendor created', [], 201);
-        return;
+        return Response::success('Vendor created', [], 201);
     }
 
     /**
      * GET /api/admin/vendors/{id}/orders
      * List all orders for a vendor.
      */
-    public function ordersByVendor(int $vendorId): void
+    public function ordersByVendor(int $vendorId): Response
     {
         $foodOrders = $this->foodOrderModel->allOrdersByVendor($vendorId);
         $totalOrders = count($foodOrders);
@@ -219,21 +212,19 @@ class AdminVendorController{
         }
         unset($order); // break reference
 
-        Response::success('Orders by vendor', [
+        return Response::success('Orders by vendor', [
             'vendor' => $vendor,
             'totalOrders' => $totalOrders,
             'foodOrders' => $foodOrders
         ]);
-        return;
     }
     
     /** GET /api/admin/vendors/{id}/earnings */
-    public function earningByVendor(int $vendorId): void
+    public function earningByVendor(int $vendorId): Response
     {
         $vendor = $this->vendorModel->find($vendorId);
         if (!$vendor) {
-            Response::error('Vendor not found', [], 404);
-            return;
+            return Response::error('Vendor not found', [], 404);
         }
 
         // Unset the password field for security before returning vendor data
@@ -244,36 +235,32 @@ class AdminVendorController{
         $total = $this->foodOrderModel->totalByVendor($vendorId, 'accepted');
         $rows  = $this->foodOrderModel->perOrderBreakdown($vendorId, 'accepted');
 
-        Response::success('Vendor earnings', [
+        return Response::success('Vendor earnings', [
             'vendor' => $vendor,
             'totalAmount'=> $total,
             'orders'    => $rows
         ]);
-        return;
     }
     /**
      * P /api/admin/vendors/image/{id}
      * Update an existing vendor's details.
     */
-    public function updateVendorImage(int $vendorId): void
+    public function updateVendorImage(int $vendorId): Response
     {
         // Only accept multipart/form-data
         if (strpos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') === false) {
-            Response::error('Only accept form data', [], 400);
-            return;
+            return Response::error('Only accept form data', [], 400);
         }
 
         // Check if vendor exists
         $vendor = $this->vendorModel->find($vendorId);
         if (!$vendor) {
-            Response::error('Vendor not found', [], 404);
-            return;
+            return Response::error('Vendor not found', [], 404);
         }
 
         // Check for image file
         if (!isset($_FILES['image']) || $_FILES['image']['error'] !== 0) {
-            Response::error("No valid image file provided", [], 400);
-            return;
+            return Response::error("No valid image file provided", [], 400);
         }
 
         // Upload image and update vendor
@@ -282,23 +269,21 @@ class AdminVendorController{
             "foodDelivery/vendors/vendor-{$vendorId}"
         );
         if (!$photoUrl || !$this->vendorModel->imageUpdate($vendorId, ['image' => $photoUrl])) {
-            Response::error("Image upload failed", [], 400);
-            return;
+            return Response::error("Image upload failed", [], 400);
         }
 
-        Response::success("Image upload success", [], 200);
+        return Response::success("Image upload success", [], 200);
     }
     /**
      * PUT /api/admin/vendors/{id}
      * Update an existing vendor's details.
     */
-    public function update(int $id): void
+    public function update(int $id): Response
     {  
         // 1) Check if vendor exists
         $vendor = $this->vendorModel->find($id);
         if (!$vendor) {
-            Response::error('Vendor not found', [], 404);
-            return;
+            return Response::error('Vendor not found', [], 404);
         }
 
         // 2) Parse the request body - handle both JSON and form-data
@@ -317,15 +302,13 @@ class AdminVendorController{
             // For JSON, use Request helper
             $body = $this->request->all();
             if ($body === null) {
-                Response::error('Invalid JSON format', [], 400);
-                return;
+                return Response::error('Invalid JSON format', [], 400);
             }
         }
 
         // If $body is still null or empty, return error
         if (empty($body) || !is_array($body)) {
-            Response::error('No data received or invalid format', [], 400);
-            return;
+            return Response::error('No data received or invalid format', [], 400);
         }
 
         // Handle food_types array if it's a JSON string from form-data
@@ -339,8 +322,7 @@ class AdminVendorController{
         $updateData = [];
         if (isset($body['name'])) {
             if (!$this->validateText($body['name'], 1, 100)) {
-                Response::error('Invalid name', [], 422);
-                return;
+                return Response::error('Invalid name', [], 422);
             }
             $updateData['name'] = $this->sanitizeText($body['name']);
         }
@@ -371,33 +353,29 @@ class AdminVendorController{
         // 4) Persist changes
         $result = $this->vendorModel->update($id, $updateData);
         if ($result) {
-            Response::success('Vendor updated');
+            return Response::success('Vendor updated');
         } else {
-            Response::error('Failed to update vendor', [], 500);
+            return Response::error('Failed to update vendor', [], 500);
         }
-        return;
     }
 
         /**
          * DELETE /api/admin/vendors/{id}
          * Delete a vendor. This should also cascade‐delete their foods (because of FK ON DELETE CASCADE).
         */
-    public function delete(int $id): void
+    public function delete(int $id): Response
     {
         $vendor = $this->vendorModel->find($id);
         if (!$vendor) {
-            Response::error('Vendor not found', [], 404);
-            return;
+            return Response::error('Vendor not found', [], 404);
         }
 
         $result = $this->vendorModel->delete($id);
         if ($result) {
-            Response::success('Vendor deleted');
+            return Response::success('Vendor deleted');
         } else {
-            Response::error('Failed to delete vendor', [], 500);
+            return Response::error('Failed to delete vendor', [], 500);
         }
-
-        return;
     }
     
 

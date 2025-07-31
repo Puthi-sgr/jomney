@@ -26,11 +26,11 @@ try {
         'is_connected' => $stats['is_connected'],
         'test_query_result' => $result['test'],
         'timestamp' => date('Y-m-d H:i:s')
-    ]);
+    ])->json();
     
 } catch (Exception $e) {
     Response::error('Database health check failed', [
         'error' => $e->getMessage(),
         'timestamp' => date('Y-m-d H:i:s')
-    ], 500);
+    ], 500)->json();
 }

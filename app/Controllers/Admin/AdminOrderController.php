@@ -35,7 +35,7 @@ class AdminOrderController
      * GET /api/admin/orders
      * List all orders with optional filters (status_id, customer_id, date range).
      */
-    public function index(): void
+    public function index(): Response
     {
         // For MVP: return all orders
         $orders = $this->orderModel->all(); 
@@ -57,22 +57,20 @@ class AdminOrderController
 
 
         if(!$orders) {
-            Response::error('No orders found', [], 404);
-            return;
+            return Response::error('No orders found', [], 404);
         }
 
 
-        Response::success('All orders', [
+        return Response::success('All orders', [
             'orders' => $allOrders
         ], 200);
-        return;
     }
     
     /**
      * GET /api/admin/orders/{id}
      * View one order with line‐items.
      */
-    public function show(int $orderId): void
+    public function show(int $orderId): Response
     {
         $order = $this->orderModel->getOrderWithFoodItems($orderId);
         unset($order['customer_id']);
@@ -80,14 +78,12 @@ class AdminOrderController
         unset($order['status_key']);
         unset($order['status_label']);
         if (!$order) {
-            Response::error('Order not found', [], 404);
-            return;
+            return Response::error('Order not found', [], 404);
         }
 
    
 
-        Response::success('Order', ['order' => $order], 200);
-        return;
+        return Response::success('Order', ['order' => $order], 200);
     }
 
     /**
@@ -95,38 +91,33 @@ class AdminOrderController
      * Body: { "status_key": "confirmed" }  (key must exist in order_statuses)
     */
 
-    public function updateStatus(int $orderId): void
+    public function updateStatus(int $orderId): Response
     {
         $order = $this->orderModel->find($orderId);
         if (!$order) {
-            Response::error('Order not found', [], 404);
-            return;
+            return Response::error('Order not found', [], 404);
         }
 
         $body = $this->request->all();
         $newKey = $body['status_key'] ?? '';
         if (!$newKey) {
-            Response::error('status_key is required', [], 422);
-            return;
+            return Response::error('status_key is required', [], 422);
         }
     
         // 1) Find new status_id by key
         $newStatus = $this->statusModel->findByKey($newKey);
         if (!$newStatus) {
-           Response::error('Invalid status key', [], 422);
-           return;
+           return Response::error('Invalid status key', [], 422);
         }
 
         // 2) Update order status
         $result = $this->orderModel->updateStatus($orderId, $newStatus['id']);
 
         if(!$result){
-            Response::error('Failed to update order status', [], 500);
-            return;
+            return Response::error('Failed to update order status', [], 500);
         }
 
-        Response::success("Order status updated", [], 200);
-        return;
+        return Response::success("Order status updated", [], 200);
     }
         
 }
