@@ -29,7 +29,7 @@ class AdminVendorController{
      * GET /api/admin/vendors
      * List all vendors, optionally with pagination or search parameters.
     */
-    public function index(): void
+    public function index(): Response
     {
         $vendors = $this->vendorModel->all();
 
@@ -47,10 +47,10 @@ class AdminVendorController{
        
        
 
-        Response::success('Vendors list', [
+        return Response::success('Vendors list', [
             "vendors" => $vendors
         ]);
-        return;
+       
     }
 
     /**

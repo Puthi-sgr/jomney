@@ -26,7 +26,7 @@ class AdminStatsController
      *  - total_revenue
      *  - orders_by_status (array)
      */
-     public function index(): void
+     public function index(): Response
     {
          // 1) Total customers
         $custStmt = $this->db->query("SELECT COUNT(*) FROM customer");
@@ -66,7 +66,7 @@ class AdminStatsController
          // e.g. [ 'pending'=>12, 'confirmed'=>5, ... ]
 
         // 6) Return everything in one JSON
-        Response::success('Stats overview', [
+        return Response::success('Stats overview', [
             'total_customers' => $totalCustomers,
             'total_vendors'   => $totalVendors,
             'total_orders'    => $totalOrders,

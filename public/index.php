@@ -134,7 +134,7 @@ $router->get('/api/admin/user', [$adminAuth, 'user'], [$jwtMiddleware, 'handle']
 
 // ─────── Dashboard & Statistics ───────
 $statsCtrl = new AdminStatsController();
-$router->get('/api/admin/stats', [$statsCtrl, 'index'], $cacheMiddleware,  $jwtMiddleware);
+$router->get('/api/admin/stats', [$statsCtrl, 'index'],  $jwtMiddleware);
 
 // ─────── Vendor Management ───────
 
@@ -209,5 +209,9 @@ $requestMethod = $_SERVER['REQUEST_METHOD'];
 $request = $_SERVER['REQUEST_URI']; //tell the app how to handle the request
 
 set_exception_handler([ErrorHandler::class, 'handleException']);
+//The error handler return a response object but cannot display json
+// so we need to call the json method from the Response class
+
+
 
 $router->dispatch($requestMethod, $request);
