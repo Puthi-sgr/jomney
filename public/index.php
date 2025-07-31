@@ -92,35 +92,35 @@ $router->post('/api/v1/auth/register', [$customerAuth, 'register']);
 $router->post('/api/v1/auth/login', [$customerAuth, 'login']);
 
 // Protected profile routes
-$router->post('/api/v1/auth/logout', [$customerAuth, 'logout'], [$jwtMiddleware, 'handle']);
-$router->get('/api/v1/auth/profile', [$customerAuth, 'profile'], [$jwtMiddleware, 'handle']);
-$router->put('/api/v1/auth/profile', [$customerAuth, 'updateProfile'], [$jwtMiddleware, 'handle']);
-$router->post('/api/v1/auth/profile/image', [$customerAuth, 'updateCustomerProfilePicture'], [$jwtMiddleware, 'handle']);
+$router->post('/api/v1/auth/logout', [$customerAuth, 'logout'], $jwtMiddleware);
+$router->get('/api/v1/auth/profile', [$customerAuth, 'profile'], $jwtMiddleware);
+$router->put('/api/v1/auth/profile', [$customerAuth, 'updateProfile'], $jwtMiddleware);
+$router->post('/api/v1/auth/profile/image', [$customerAuth, 'updateCustomerProfilePicture'], $jwtMiddleware);
 
 // ─────── Order Management ───────
 
 $customerOrder = new CustomerOrderController();
 
-$router->post('/api/v1/orders', [$customerOrder, 'store'], [$jwtMiddleware, 'handle']);
-$router->get('/api/v1/orders', [$customerOrder, 'index'], [$jwtMiddleware, 'handle']);
-$router->get('/api/v1/orders/{id}', [$customerOrder, 'show'], [$jwtMiddleware, 'handle']);
-$router->delete('/api/v1/orders/{id}', [$customerOrder, 'cancel'], [$jwtMiddleware, 'handle']);
+$router->post('/api/v1/orders', [$customerOrder, 'store'], $jwtMiddleware);
+$router->get('/api/v1/orders', [$customerOrder, 'index'], $jwtMiddleware);
+$router->get('/api/v1/orders/{id}', [$customerOrder, 'show'], $jwtMiddleware);
+$router->delete('/api/v1/orders/{id}', [$customerOrder, 'cancel'], $jwtMiddleware);
 
 // ─────── Payment Management ───────
 
 $customerPayment = new CustomerPaymentController();
 
 // Payment Methods Management (Stripe Only)
-$router->get('/api/v1/payment-methods', [$customerPayment, 'getPaymentMethods'], [$jwtMiddleware, 'handle']);
-$router->post('/api/v1/payment-methods/stripe/setup-intent', [$customerPayment, 'createSetupIntent'], [$jwtMiddleware, 'handle']);
-$router->post('/api/v1/payment-methods/stripe/save', [$customerPayment, 'savePaymentMethod'], [$jwtMiddleware, 'handle']);
-$router->delete('/api/v1/payment-methods/stripe/{id}', [$customerPayment, 'removeStripePaymentMethod'], [$jwtMiddleware, 'handle']);
+$router->get('/api/v1/payment-methods', [$customerPayment, 'getPaymentMethods'], $jwtMiddleware);
+$router->post('/api/v1/payment-methods/stripe/setup-intent', [$customerPayment, 'createSetupIntent'], $jwtMiddleware);
+$router->post('/api/v1/payment-methods/stripe/save', [$customerPayment, 'savePaymentMethod'], $jwtMiddleware);
+$router->delete('/api/v1/payment-methods/stripe/{id}', [$customerPayment, 'removeStripePaymentMethod'], $jwtMiddleware);
 
 //stripe payment processing
-$router->post('/api/v1/orders/{orderid}/stripe-payment', [$customerPayment, 'processStripePayment'], [$jwtMiddleware, 'handle']);
+$router->post('/api/v1/orders/{orderid}/stripe-payment', [$customerPayment, 'processStripePayment'], $jwtMiddleware);
 // Payment History
-$router->get('/api/v1/payments', [$customerPayment, 'getPaymentHistory'], [$jwtMiddleware, 'handle']);
-$router->get('/api/v1/payments/{id}', [$customerPayment, 'getPayment'], [$jwtMiddleware, 'handle']);
+$router->get('/api/v1/payments', [$customerPayment, 'getPaymentHistory'], $jwtMiddleware);
+$router->get('/api/v1/payments/{id}', [$customerPayment, 'getPayment'], $jwtMiddleware);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ─────── ADMIN ROUTES ────────────────────────────────────────────────────
@@ -130,7 +130,7 @@ $router->get('/api/v1/payments/{id}', [$customerPayment, 'getPayment'], [$jwtMid
 $adminAuth = new AdminAuthController();
 $router->post('/api/admin/login', [$adminAuth, 'login']);
 $router->post('/api/admin/logout', [$adminAuth, 'logout'], null);
-$router->get('/api/admin/user', [$adminAuth, 'user'], [$jwtMiddleware, 'handle']);
+$router->get('/api/admin/user', [$adminAuth, 'user'], $jwtMiddleware);
 
 // ─────── Dashboard & Statistics ───────
 $statsCtrl = new AdminStatsController();
@@ -139,55 +139,55 @@ $router->get('/api/admin/stats', [$statsCtrl, 'index'],  $jwtMiddleware);
 // ─────── Vendor Management ───────
 
 $vendorCtrl = new AdminVendorController();
-$router->get('/api/admin/vendors', [$vendorCtrl, 'index'], [$jwtMiddleware, 'handle']);
-$router->post('/api/admin/vendors', [$vendorCtrl, 'store'], [$jwtMiddleware, 'handle']);
-$router->get('/api/admin/vendors/{id}', [$vendorCtrl, 'show'], [$jwtMiddleware, 'handle']);
-$router->post('/api/admin/vendors/{id}', [$vendorCtrl, 'updateVendorImage'], [$jwtMiddleware, 'handle']);
-$router->put('/api/admin/vendors/{id}', [$vendorCtrl, 'update'], [$jwtMiddleware, 'handle']);
-$router->delete('/api/admin/vendors/delete/{id}', [$vendorCtrl, 'delete'], [$jwtMiddleware, 'handle']);
-$router->get('/api/admin/vendors/{id}/earnings', [$vendorCtrl, 'earningByVendor'], [$jwtMiddleware, 'handle']);
-$router->get('/api/admin/vendors/{id}/orders', [$vendorCtrl, 'ordersByVendor'], [$jwtMiddleware, 'handle']);
+$router->get('/api/admin/vendors', [$vendorCtrl, 'index'], $jwtMiddleware);
+$router->post('/api/admin/vendors', [$vendorCtrl, 'store'], $jwtMiddleware);
+$router->get('/api/admin/vendors/{id}', [$vendorCtrl, 'show'], $jwtMiddleware);
+$router->post('/api/admin/vendors/{id}', [$vendorCtrl, 'updateVendorImage'], $jwtMiddleware);
+$router->put('/api/admin/vendors/{id}', [$vendorCtrl, 'update'], $jwtMiddleware);
+$router->delete('/api/admin/vendors/delete/{id}', [$vendorCtrl, 'delete'], $jwtMiddleware);
+$router->get('/api/admin/vendors/{id}/earnings', [$vendorCtrl, 'earningByVendor'], $jwtMiddleware);
+$router->get('/api/admin/vendors/{id}/orders', [$vendorCtrl, 'ordersByVendor'], $jwtMiddleware);
 
 // ─────── Food Management ───────
 $foodCtrl = new AdminFoodController();
-$router->get('/api/admin/foods', [$foodCtrl, 'index'], [$jwtMiddleware, 'handle']);
-$router->post('/api/admin/foods', [$foodCtrl, 'store'], [$jwtMiddleware, 'handle']);
-$router->post('/api/admin/foods/image/{id}', [$foodCtrl, 'updateFoodImage'], [$jwtMiddleware, 'handle']);
-$router->get('/api/admin/foods/{id}', [$foodCtrl, 'show'], [$jwtMiddleware, 'handle']);
-$router->put('/api/admin/foods/{id}', [$foodCtrl, 'update'], [$jwtMiddleware, 'handle']);
-$router->delete('/api/admin/foods/{id}', [$foodCtrl, 'delete'], [$jwtMiddleware, 'handle']);
+$router->get('/api/admin/foods', [$foodCtrl, 'index'], $jwtMiddleware);
+$router->post('/api/admin/foods', [$foodCtrl, 'store'], $jwtMiddleware);
+$router->post('/api/admin/foods/image/{id}', [$foodCtrl, 'updateFoodImage'], $jwtMiddleware);
+$router->get('/api/admin/foods/{id}', [$foodCtrl, 'show'], $jwtMiddleware);
+$router->put('/api/admin/foods/{id}', [$foodCtrl, 'update'], $jwtMiddleware);
+$router->delete('/api/admin/foods/{id}', [$foodCtrl, 'delete'], $jwtMiddleware);
 
 // ─────── Inventory Management ───────
-$router->get('/api/admin/foods/{id}/inventory', [$foodCtrl, 'getInventory'], [$jwtMiddleware, 'handle']);
-$router->patch('/api/admin/foods/{id}/inventory/adjust', [$foodCtrl, 'adjustInventory'], [$jwtMiddleware, 'handle']);
+$router->get('/api/admin/foods/{id}/inventory', [$foodCtrl, 'getInventory'], $jwtMiddleware);
+$router->patch('/api/admin/foods/{id}/inventory/adjust', [$foodCtrl, 'adjustInventory'], $jwtMiddleware);
 
 // ─────── Order Management ───────
 $orderCtrl = new AdminOrderController();
-$router->get('/api/admin/orders', [$orderCtrl, 'index'], [$jwtMiddleware, 'handle']);
-$router->get('/api/admin/orders/{orderId}', [$orderCtrl, 'show'], [$jwtMiddleware, 'handle']);
-$router->patch('/api/admin/orders/{id}/status', [$orderCtrl, 'updateStatus'], [$jwtMiddleware, 'handle']);
+$router->get('/api/admin/orders', [$orderCtrl, 'index'], $jwtMiddleware);
+$router->get('/api/admin/orders/{orderId}', [$orderCtrl, 'show'], $jwtMiddleware);
+$router->patch('/api/admin/orders/{id}/status', [$orderCtrl, 'updateStatus'], $jwtMiddleware);
 
 // ─────── Customer Management ───────
 $customerCtrl = new AdminCustomerController();
-$router->get('/api/admin/customers', [$customerCtrl, 'index'], [$jwtMiddleware, 'handle']);
-$router->post('/api/admin/customers', [$customerCtrl, 'store'], [$jwtMiddleware, 'handle']);
-$router->get('/api/admin/customers/{id}', [$customerCtrl, 'show'], [$jwtMiddleware, 'handle']);
-$router->put('/api/admin/customers/{id}', [$customerCtrl, 'update'], [$jwtMiddleware, 'handle']);
-$router->post('/api/admin/customers/image/{id}', [$customerCtrl, 'updateCustomerImage'], [$jwtMiddleware, 'handle']);
-$router->delete('/api/admin/customers/{id}', [$customerCtrl, 'delete'], [$jwtMiddleware, 'handle']);
+$router->get('/api/admin/customers', [$customerCtrl, 'index'], $jwtMiddleware);
+$router->post('/api/admin/customers', [$customerCtrl, 'store'], $jwtMiddleware);
+$router->get('/api/admin/customers/{id}', [$customerCtrl, 'show'], $jwtMiddleware);
+$router->put('/api/admin/customers/{id}', [$customerCtrl, 'update'], $jwtMiddleware);
+$router->post('/api/admin/customers/image/{id}', [$customerCtrl, 'updateCustomerImage'], $jwtMiddleware);
+$router->delete('/api/admin/customers/{id}', [$customerCtrl, 'delete'], $jwtMiddleware);
 
 // ─────── Payment Management ───────
 $paymentCtrl = new AdminPaymentController();
-$router->get('/api/admin/payments', [$paymentCtrl, 'index'], [$jwtMiddleware, 'handle']);
-$router->get('/api/admin/payments/{id}', [$paymentCtrl, 'show'], [$jwtMiddleware, 'handle']);
+$router->get('/api/admin/payments', [$paymentCtrl, 'index'], $jwtMiddleware);
+$router->get('/api/admin/payments/{id}', [$paymentCtrl, 'show'], $jwtMiddleware);
 
 // ─────── System Settings ───────
 $settingsCtrl = new AdminSettingsController();
-$router->get('/api/admin/order-statuses', [$settingsCtrl, 'allStatuses'], [$jwtMiddleware, 'handle']);
-$router->post('/api/admin/order-statuses', [$settingsCtrl, 'createStatus'], [$jwtMiddleware, 'handle']);
-$router->get('/api/admin/order-statuses/{key}', [$settingsCtrl, 'getStatus'], [$jwtMiddleware, 'handle']);
-$router->put('/api/admin/order-statuses/{key}', [$settingsCtrl, 'updateStatus'], [$jwtMiddleware, 'handle']);
-$router->delete('/api/admin/order-statuses/{key}', [$settingsCtrl, 'deleteStatus'], [$jwtMiddleware, 'handle']);
+$router->get('/api/admin/order-statuses', [$settingsCtrl, 'allStatuses'], $jwtMiddleware);
+$router->post('/api/admin/order-statuses', [$settingsCtrl, 'createStatus'], $jwtMiddleware);
+$router->get('/api/admin/order-statuses/{key}', [$settingsCtrl, 'getStatus'], $jwtMiddleware);
+$router->put('/api/admin/order-statuses/{key}', [$settingsCtrl, 'updateStatus'], $jwtMiddleware);
+$router->delete('/api/admin/order-statuses/{key}', [$settingsCtrl, 'deleteStatus'], $jwtMiddleware);
 /* ------------------AUTHs---------------------------------- */
 
 /* ---------------------ORDERS---------------------------- */
@@ -197,7 +197,7 @@ $router->delete('/api/admin/order-statuses/{key}', [$settingsCtrl, 'deleteStatus
 /* ---------------------PAYMENTS---------------------------- */
 $paymentController = new PaymentController();
 //must be logged in to create payment
-$router->post("/payments/create", [$paymentController, 'create'], [JWTMiddleware::class, 'handle']);
+$router->post("/payments/create", [$paymentController, 'create'], $jwtMiddleware);
 
 //Webhook endpoint (Public, no auth)
 $router->post('/payments/webhook', [$paymentController, 'webhook']);
