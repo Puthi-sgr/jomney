@@ -29,7 +29,7 @@ class CustomerOrderController
     }
 
     /** POST /orders */
-    public function store(): void
+    public function store(): Response
     {
         $body = $this->request->all();
 
@@ -38,24 +38,22 @@ class CustomerOrderController
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
 
         if (empty($body['items']) || !is_array($body['items'])) {
-            Response::error('Items are required and must be an array', [], 422);
-            return;
+            return Response::error('Items are required and must be an array', [], 422);
         }
 
         $order = $this->orderModel->createWithInventory($customerId, $items, $remarks ?? null);
-        Response::success('Order created', ['orders' => $order], 201);
+        return Response::success('Order created', ['orders' => $order], 201);
     }
 
     /** GET /orders */
-    public function index(): void
+    public function index(): Response
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
         $orders = $this->orderModel->getOrderHistory($customerId);
 
         $customer = $this->customerModel->find($customerId);
         if (!$customer) {
-            Response::error('Customer not found', [], 404);
-            return;
+            return Response::error('Customer not found', [], 404);
         }
         unset($customer['password']);
         unset($customer['created_at']);
@@ -64,7 +62,7 @@ class CustomerOrderController
       
 
         if (!$orders) {
-            Response::error('No orders found', [], 404);
+            return Response::error('No orders found', [], 404);
         }
         
         $allOrders = [];
@@ -87,23 +85,22 @@ class CustomerOrderController
             $allOrders[] = $order;
         }
 
-        Response::success('Orders retrieved', 
+        return Response::success('Orders retrieved',
                 [
-                    'customer' => $customer, 
+                    'customer' => $customer,
                     'orders' => $allOrders
-                ], 
+                ],
             200);
     }
 
     /** GET /orders/{id} */
-    public function show(int $id): void
+    public function show(int $id): Response
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
 
         $order = $this->orderModel->findOrderForCustomer($id, $customerId);
         if (!$order) {
-            Response::error('Order not found', [], 404);
-            return;
+            return Response::error('Order not found', [], 404);
         }
 
         $food_detail = $this->foodOrderModel->getFoodDetailByOrderId($id);
@@ -124,19 +121,18 @@ class CustomerOrderController
         
        
 
-        Response::success('Order retrieved', ['order' => $order]);
+        return Response::success('Order retrieved', ['order' => $order]);
     }
 
     /** DELETE /orders/{id} */
-    public function cancel(int $id): void
+    public function cancel(int $id): Response
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
         
         $order = $this->orderModel->cancelIfPending($id, $customerId);
         if (!$order) {
-            Response::error('Cannot cancel order', ['cancelled order' => $order], 422);
-            return;
+            return Response::error('Cannot cancel order', ['cancelled order' => $order], 422);
         }
-        Response::success('Order cancelled', $order);
+        return Response::success('Order cancelled', $order);
     }
 }

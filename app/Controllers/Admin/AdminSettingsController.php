@@ -20,10 +20,10 @@ class AdminSettingsController
      * GET /api/admin/order-statuses
      * List all statuses
      */
-    public function allStatuses(): void
+    public function allStatuses(): Response
     {
         $statuses = $this->statusModel->all();
-        Response::success('All order statuses', $statuses);
+        return Response::success('All order statuses', $statuses);
     }
 
     
@@ -31,28 +31,25 @@ class AdminSettingsController
      * POST /api/admin/order-statuses
      * Body: { "key":"archived", "label":"Archived" }
      */
-    public function createStatus(): void
+    public function createStatus(): Response
     {
         $body = $this->request->all();
         $key   = $body['key']   ?? '';
         $label = $body['label'] ?? '';
         if (!$key || !$label) {
-            Response::error('Both key and label are required', [], 422);
-            return;
+            return Response::error('Both key and label are required', [], 422);
         }
         // 1) Check uniqueness
         if ($this->statusModel->findByKey($key)) {
-            Response::error('Status key already exists', [], 409);
-            return;
+            return Response::error('Status key already exists', [], 409);
         }
         // 2) Insert
         $result = $this->statusModel->create($key, $label);
         if (!$result) {
-            Response::error('Failed to create status', [], 500);
-            return;
+            return Response::error('Failed to create status', [], 500);
         } 
 
-        Response::success('Status created', [$result], 201);
+        return Response::success('Status created', [$result], 201);
     }
 
     /**
@@ -60,51 +57,44 @@ class AdminSettingsController
      *   - GET   /settings/{key} → fetch one status
      *   - PUT   /settings/{key} → update label
      */
-    public function getStatus(string $key): void
+    public function getStatus(string $key): Response
     {
         $status = $this->statusModel->findByKey($key);
         if (!$status) {
-            Response::error('Status not found', [], 404);
-            return;
+            return Response::error('Status not found', [], 404);
         }
-        Response::success('Status detail', $status);
+        return Response::success('Status detail', $status);
     }
 
-    public function updateStatus(string $key): void
+    public function updateStatus(string $key): Response
     {
         $body = $this->request->all();
         $label = $body['label'] ?? '';
         if (!$label) {
-            Response::error('Label is required', [], 422);
-            return;
+            return Response::error('Label is required', [], 422);
         }
         $status = $this->statusModel->findByKey($key);
         if (!$status) {
-            Response::error('Status not found', [], 404);
-            return;
+            return Response::error('Status not found', [], 404);
         }
         $result = $this->statusModel->update($status['id'], $label);
         if (!$result) {
-            Response::error('Failed to update', [], 500);
-            return;
-        } 
-        
-        Response::success('Status updated');
+            return Response::error('Failed to update', [], 500);
+        }
+
+        return Response::success('Status updated');
     }
 
-    public function deleteStatus(string $key): void
+    public function deleteStatus(string $key): Response
     {
         $status = $this->statusModel->findByKey($key);
         if (!$status) {
-            Response::error('Status not found', [], 404);
-            return;
+            return Response::error('Status not found', [], 404);
         }
         $result = $this->statusModel->delete($status['id']);
         if (!$result) {
-            Response::error('Failed to delete', [], 500);
-            return;
-        } 
-
-        Response::success('Status deleted');
+            return Response::error('Failed to delete', [], 500);
+        }
+        return Response::success('Status deleted');
     }
 }

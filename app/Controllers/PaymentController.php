@@ -37,7 +37,7 @@ class PaymentController{
             "payment_method_id": 456
         }
      */
-    public function createPaymentIntent(): void
+    public function createPaymentIntent(): Response
     {
         $data = $this->request->all();
         
@@ -45,22 +45,19 @@ class PaymentController{
         $paymentMethodId = (int)($data['payment_method_id'] ?? 0);
 
         if ($orderId <= 0) {
-            Response::error("Invalid order ID", [], 400);
-            return;
+            return Response::error("Invalid order ID", [], 400);
         }
 
         try {
             // Get order details
             $order = $this->orderModel->find($orderId);
             if (!$order) {
-                Response::error("Order not found", [], 404);
-                return;
+                return Response::error("Order not found", [], 404);
             }
 
             $amount = (float)$order['total_amount'];
             if ($amount <= 0) {
-                Response::error("Invalid order amount", [], 400);
-                return;
+                return Response::error("Invalid order amount", [], 400);
             }
 
             // Get payment method if provided
@@ -111,11 +108,10 @@ class PaymentController{
             $paymentId = $this->paymentModel->create($paymentData);
 
             if (!$paymentId) {
-                Response::error("Failed to create payment record", [], 500);
-                return;
+                return Response::error("Failed to create payment record", [], 500);
             }
 
-            Response::success("Payment intent created", [
+            return Response::success("Payment intent created", [
                 'payment_intent_id' => $paymentIntent->id,
                 'client_secret' => $paymentIntent->client_secret,
                 'status' => $paymentIntent->status,
@@ -124,7 +120,7 @@ class PaymentController{
 
         } catch (Exception $e) {
             error_log("Payment creation failed: " . $e->getMessage());
-            Response::error("Payment creation failed: " . $e->getMessage(), [], 500);
+            return Response::error("Payment creation failed: " . $e->getMessage(), [], 500);
         }
     }
 
@@ -143,7 +139,7 @@ class PaymentController{
         };
     }
 
-    public function webhook():void {
+    public function webhook(): Response {
         //1. Extract the payload
         //2. Get the http header from stripe
         //3. Get secret stripe payload
@@ -164,9 +160,10 @@ class PaymentController{
                 $this->paymentModel->updateStatus($pi->id, 'succeeded');
             }
         }catch(\UnexpectedValueException $e){
-            Response::error(
+            return Response::error(
                 'Webhook error: ', [$e->getMessage()] , 400
             );
         }
+        return Response::success('Webhook received');
     }
 }

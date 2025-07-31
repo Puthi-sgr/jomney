@@ -23,7 +23,7 @@ class PublicController
      * GET /api/public/vendors
      * Fetch all vendors for main application listing
      */
-    public function getAllVendors(): void
+    public function getAllVendors(): Response
     {
         $vendors = $this->vendorModel->all();
         
@@ -39,19 +39,18 @@ class PublicController
         }
         unset($vendor); // break reference
         
-        Response::success('All vendors retrieved',['vendors' => $vendors]);
+        return Response::success('All vendors retrieved',['vendors' => $vendors]);
     }
 
     /**
      * GET /api/public/foods
      * Fetch all foods for main application listing
      */
-    public function getAllFoods(): void
+    public function getAllFoods(): Response
     {
         $foods = $this->foodModel->all();
         if(!$foods) {
-            Response::error('No foods found', [], 404);
-            return;
+            return Response::error('No foods found', [], 404);
         }
 
 
@@ -68,20 +67,19 @@ class PublicController
      
         }
 
-        Response::success('All foods retrieved', ['foods' => $foods]);
+        return Response::success('All foods retrieved', ['foods' => $foods]);
     }
 
     /**
      * GET /api/public/vendors/{id}
      * Fetch vendor details with their food list
      */
-    public function getVendorDetails(int $vendorId): void
+    public function getVendorDetails(int $vendorId): Response
     {
         // Get vendor details
         $vendor = $this->vendorModel->find($vendorId);
         if (!$vendor) {
-            Response::error('Vendor not found', [], 404);
-            return;
+            return Response::error('Vendor not found', [], 404);
         }
 
         // Remove sensitive information
@@ -101,19 +99,18 @@ class PublicController
             'foods' => $foods
         ];
 
-        Response::success('Vendor details with foods', $vendorWithFoods);
+        return Response::success('Vendor details with foods', $vendorWithFoods);
     }
 
     /**
      * GET /api/public/foods/{id}
      * Fetch specific food details
      */
-    public function getFoodDetails(int $foodId): void
+    public function getFoodDetails(int $foodId): Response
     {
         $food = $this->foodModel->find($foodId);
         if (!$food) {
-            Response::error('Food not found', [], 404);
-            return;
+            return Response::error('Food not found', [], 404);
         }
     
         $vendorId = $food["vendor_id"];
@@ -125,6 +122,6 @@ class PublicController
         
         $food['vendor'] = $vendor;
 
-        Response::success('Food details', $food);
+        return Response::success('Food details', $food);
     }
 }

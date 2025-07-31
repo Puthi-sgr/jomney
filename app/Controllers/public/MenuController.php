@@ -17,7 +17,7 @@ class MenuController
     }
 
     /** GET /menu */
-    public function index(): void
+    public function index(): Response
     {
         $filters = [];
         
@@ -30,17 +30,16 @@ class MenuController
         }
 
         $foods = $this->foodModel->all($filters);
-        Response::success('Foods retrieved successfully', ['foods' => $foods]);
+        return Response::success('Foods retrieved successfully', ['foods' => $foods]);
     }
 
     /** GET /menu/{id} */
-    public function show(int $id): void
+    public function show(int $id): Response
     {
         $food = $this->foodModel->find($id);
         if (!$food) {
-            Response::error('Food not found', [], 404);
-            return;
+            return Response::error('Food not found', [], 404);
         }
-        Response::success('Food retrieved successfully', $food);
+        return Response::success('Food retrieved successfully', $food);
     }
 }

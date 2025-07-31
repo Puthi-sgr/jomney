@@ -39,7 +39,7 @@ class CustomerPaymentController
     /**
      * Create a SetupIntent for adding payment methods
      */
-    public function createSetupIntent(): void
+    public function createSetupIntent(): Response
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
 
@@ -56,14 +56,14 @@ class CustomerPaymentController
 
             // The Stripe SetupIntent object does not always have a 'payment_method' property at creation.
             // It's safer to only return fields that are always present and needed by the frontend.
-            Response::success('Setup intent created', [
+            return Response::success('Setup intent created', [
                 'client_secret' => $setupIntent->client_secret,
                 'setup_intent_id' => $setupIntent->id,
                 'usage' => $setupIntent->usage,
             ]);
         } catch (Exception $e) {
             error_log("Setup intent creation failed: " . $e->getMessage());
-            Response::error("Failed to create setup intent", [], 500);
+            return Response::error("Failed to create setup intent", [], 500);
         }
     }
 
@@ -71,18 +71,18 @@ class CustomerPaymentController
      * GET /api/v1/payment-methods
      * Get all payment methods for the authenticated customer
      */
-public function getPaymentMethods(): void
+public function getPaymentMethods(): Response
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
 
         $paymentMethods = $this->paymentMethodModel->allByCustomer($customerId);
-        Response::success('Payment methods retrieved', $paymentMethods);
+        return Response::success('Payment methods retrieved', $paymentMethods);
     }
 
     /**
      * Save payment method after SetupIntent succeeds
      */
-    public function savePaymentMethod(): void
+    public function savePaymentMethod(): Response
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
         $body = $this->request->all();
@@ -90,8 +90,7 @@ public function getPaymentMethods(): void
         $paymentMethodId = $body['payment_method_id'] ?? '';
 
         if (empty($paymentMethodId)) {
-            Response::error('Payment method ID is required', [], 422);
-            return;
+            return Response::error('Payment method ID is required', [], 422);
         }
 
         try {
@@ -120,18 +119,17 @@ public function getPaymentMethods(): void
             $paymentMethodDbId = $this->paymentMethodModel->create($data);
 
             if (!$paymentMethodDbId) {
-                Response::error('Failed to save payment method', [], 500);
-                return;
+                return Response::error('Failed to save payment method', [], 500);
             }
 
-            Response::success('Payment method saved successfully', [
+            return Response::success('Payment method saved successfully', [
                 'payment_method_id' => $paymentMethodDbId,
                 'card_brand' => $data['card_brand'],
                 'card_last4' => $data['card_last4']
             ], 201);
         } catch (Exception $e) {
             error_log("Save payment method failed: " . $e->getMessage());
-            Response::error('Failed to save payment method: ' . $e->getMessage(), [], 500);
+            return Response::error('Failed to save payment method: ' . $e->getMessage(), [], 500);
         }
     }
 
@@ -140,15 +138,14 @@ public function getPaymentMethods(): void
      * POST /api/v1/payment-methods
      * Add a new payment method for the customer (mock for demo)
      */
-    public function addPaymentMethod(): void
+    public function addPaymentMethod(): Response
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
         $body = $this->request->all();
 
         // Validate required fields
         if (empty($body['type'])) {
-            Response::error('Payment method type is required', [], 422);
-            return;
+            return Response::error('Payment method type is required', [], 422);
         }
 
         // For demo purposes, we'll create mock payment methods
@@ -165,11 +162,10 @@ public function getPaymentMethods(): void
         $paymentMethodId = $this->paymentMethodModel->create($data);
 
         if (!$paymentMethodId) {
-            Response::error('Failed to add payment method', [], 500);
-            return;
+            return Response::error('Failed to add payment method', [], 500);
         }
 
-        Response::success('Payment method added successfully', [
+        return Response::success('Payment method added successfully', [
             'payment_method_id' => $paymentMethodId
         ], 201);
     }
@@ -177,14 +173,13 @@ public function getPaymentMethods(): void
     /**
      * DELETE /api/v1/payment-methods/{id}
      */
-    public function removeStripePaymentMethod(int $id): void
+    public function removeStripePaymentMethod(int $id): Response
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
 
         $paymentMethod = $this->paymentMethodModel->findByCustomerAndId($customerId, $id);
         if (!$paymentMethod) {
-            Response::error('Payment method not found', [], 404);
-            return;
+            return Response::error('Payment method not found', [], 404);
         }
 
         try {
@@ -195,13 +190,13 @@ public function getPaymentMethods(): void
             // Remove from database
             $result = $this->paymentMethodModel->delete($id);
             if ($result) {
-                Response::success('Payment method removed successfully');
+                return Response::success('Payment method removed successfully');
             } else {
-                Response::error('Failed to remove payment method', [], 500);
+                return Response::error('Failed to remove payment method', [], 500);
             }
         } catch (Exception $e) {
             error_log("Remove payment method failed: " . $e->getMessage());
-            Response::error('Failed to remove payment method', [], 500);
+            return Response::error('Failed to remove payment method', [], 500);
         }
     }
 
@@ -209,22 +204,21 @@ public function getPaymentMethods(): void
      * DELETE /api/v1/payment-methods/{id}
      * Remove a payment method
      */
-    public function removePaymentMethod(int $id): void
+    public function removePaymentMethod(int $id): Response
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
 
         // Verify the payment method belongs to the customer
         $paymentMethod = $this->paymentMethodModel->findByCustomerAndId($customerId, $id);
         if (!$paymentMethod) {
-            Response::error('Payment method not found', [], 404);
-            return;
+            return Response::error('Payment method not found', [], 404);
         }
 
         $result = $this->paymentMethodModel->delete($id);
         if ($result) {
-            Response::success('Payment method removed successfully');
+            return Response::success('Payment method removed successfully');
         } else {
-            Response::error('Failed to remove payment method', [], 500);
+            return Response::error('Failed to remove payment method', [], 500);
         }
     }
 
@@ -233,7 +227,7 @@ public function getPaymentMethods(): void
      * Process stripe payment method
      */
 
-    public function processStripePayment(int $orderId): void
+    public function processStripePayment(int $orderId): Response
     {
         //1. Grab the customer id and body from the request
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
@@ -252,29 +246,25 @@ public function getPaymentMethods(): void
         //2. Check the order exists
         $order = $this->orderModel->findOrderForCustomer($orderId, $customerId);
         if (!$order) {
-            Response::error('Order not found', [], 404);
-            return;
+            return Response::error('Order not found', [], 404);
         }
 
         //3. Make sure the order 
         if ($order['status_key'] !== 'pending') {
-            Response::error('Order is not in pending status', [], 422);
-            return;
+            return Response::error('Order is not in pending status', [], 422);
         }
 
         //4. Make sure the order hasn't been paid yet
         $existingPayment = $this->paymentModel->findByOrderId($orderId);
         if ($existingPayment) {
-            Response::error('Payment already exists for this order', [], 422);
-            return;
+            return Response::error('Payment already exists for this order', [], 422);
         }
 
         // Validate payment method
         $paymentMethodId = (int) ($body['paymentMethodId'] ?? 0);
         $paymentMethod = $this->paymentMethodModel->findByCustomerAndId($customerId, $paymentMethodId);
         if (!$paymentMethod) {
-            Response::error('Invalid payment method', [], 422);
-            return;
+            return Response::error('Invalid payment method', [], 422);
         }
 
         try {
@@ -419,12 +409,12 @@ public function getPaymentMethods(): void
      * GET /api/v1/payments
      * Get payment history for the customer
      */
-    public function getPaymentHistory(): void
+    public function getPaymentHistory(): Response
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
 
         $payments = $this->paymentModel->findByCustomer($customerId);
-        Response::success('Payment history retrieved', $payments);
+        return Response::success('Payment history retrieved', $payments);
     }
 
     
@@ -432,24 +422,22 @@ public function getPaymentMethods(): void
      * GET /api/v1/payments/{id}
      * Get specific payment details
      */
-    public function getPayment(int $paymentId): void
+    public function getPayment(int $paymentId): Response
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
 
         $payment = $this->paymentModel->find($paymentId);
         if (!$payment) {
-            Response::error('Payment not found', [], 404);
-            return;
+            return Response::error('Payment not found', [], 404);
         }
 
         // Verify the payment belongs to the customer (through payment method)
         $paymentMethod = $this->paymentMethodModel->find($payment['payment_method_id']);
         if (!$paymentMethod || $paymentMethod['customer_id'] !== $customerId) {
-            Response::error('Payment not found', [], 404);
-            return;
+            return Response::error('Payment not found', [], 404);
         }
 
-        Response::success('Payment details', $payment);
+        return Response::success('Payment details', $payment);
     }
 
     
@@ -457,7 +445,7 @@ public function getPaymentMethods(): void
     /**
      * POST /api/customer/payments/checkout
      */
-    public function checkoutMock(): void
+    public function checkoutMock(): Response
     {
         $data = [
             'order_id' => $_POST['order_id'] ?? null,
@@ -471,11 +459,10 @@ public function getPaymentMethods(): void
         $result = $this->paymentModel->create($data);
 
         if (!$result) {
-            Response::error('Failed to create payment', [], 400);
-            return;
+            return Response::error('Failed to create payment', [], 400);
         }
 
-        Response::success('Payment created successfully', $data);
+        return Response::success('Payment created successfully', $data);
     }
 
    
@@ -498,7 +485,7 @@ public function getPaymentMethods(): void
     }
 
 
-    public function processMockPayment(int $orderId): void
+    public function processMockPayment(int $orderId): Response
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
         $body = $this->request->all();
@@ -506,28 +493,24 @@ public function getPaymentMethods(): void
         // 1. Verify the order belongs to the customer and is pending
         $order = $this->orderModel->findOrderForCustomer($orderId, $customerId);
         if (!$order) {
-            Response::error('Order not found', ["data" => [$orderId, $customerId]], 404);
-            return;
+            return Response::error('Order not found', ["data" => [$orderId, $customerId]], 404);
         }
 
         if ($order['status_key'] !== 'pending') {
-            Response::error('Order is not in pending status', [], 422);
-            return;
+            return Response::error('Order is not in pending status', [], 422);
         }
 
         // 2. Check if payment already exists for this order
         $existingPayment = $this->paymentModel->findByOrderId($orderId);
         if ($existingPayment) {
-            Response::error('Payment already exists for this order', [], 422);
-            return;
+            return Response::error('Payment already exists for this order', [], 422);
         }
 
         // 3. Validate payment method
         $paymentMethodId = (int) ($body['payment_method_id'] ?? 0);
         $paymentMethod = $this->paymentMethodModel->findByCustomerAndId($customerId, $paymentMethodId);
         if (!$paymentMethod) {
-            Response::error('Invalid payment method', [], 422);
-            return;
+            return Response::error('Invalid payment method', [], 422);
         }
 
         // 4. Create payment record (mock processing for demo)
@@ -542,15 +525,14 @@ public function getPaymentMethods(): void
 
         $paymentId = $this->paymentModel->create($paymentData);
         if (!$paymentId) {
-            Response::error('Failed to create payment', [], 500);
-            return;
+            return Response::error('Failed to create payment', [], 500);
         }
 
         // 5. Simulate payment processing (for demo)
         // In real implementation, this would be handled by Stripe webhooks
         $this->simulatePaymentProcessing($paymentId, $orderId);
 
-        Response::success('Payment initiated successfully', [
+        return Response::success('Payment initiated successfully', [
             'payment_id' => $paymentId,
             'order_id' => $orderId,
             'amount' => $order['total_amount'],

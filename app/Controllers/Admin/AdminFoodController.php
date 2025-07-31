@@ -33,7 +33,7 @@ class AdminFoodController{
      * Return all food items, possibly filtered by vendor_id or category.
      * Example: /api/admin/foods?vendor_id=5
      */
-    public function index(): void
+    public function index(): Response
     {
         // If you want to filter, look at $_GET parameters
         $filters = [];
@@ -54,8 +54,7 @@ class AdminFoodController{
         $foods = $this->foodModel->all($filters);
 
         if(!$foods) {
-            Response::error('Food not found', [], 404);
-            return;
+            return Response::error('Food not found', [], 404);
         }
 
         $allFoods = [];
@@ -76,25 +75,23 @@ class AdminFoodController{
             $allFoods[] = $food;
         }
 
-        Response::success('Foods list', ['foods' => $allFoods]);
+        return Response::success('Foods list', ['foods' => $allFoods]);
     }
     /**
      * GET /api/admin/foods/{id}
     */
-    public function show(int $id): void
+    public function show(int $id): Response
     {
         $food = $this->foodModel->find($id);
 
         if(!$food) {
-            Response::error('Food item not found', [], 404);
-            return;
+            return Response::error('Food item not found', [], 404);
         }
 
         $vendor = $this->vendorModel->find($food['vendor_id']);
 
         if(!$vendor) {
-            Response::error('Vendor not found', [], 404);
-            return;
+            return Response::error('Vendor not found', [], 404);
         }
         $food['vendor'] = $vendor;
 
@@ -107,26 +104,25 @@ class AdminFoodController{
              $food['vendor']['updated_at']
          );
        
-        Response::success('Food details',["food" => $food], 200);
+        return Response::success('Food details',["food" => $food], 200);
     }
 
      /**
      * GET /api/admin/foods/{id}/inventory
      * Get current inventory stock for a food item
      */
-    public function getInventory(int $foodId): void
+    public function getInventory(int $foodId): Response
     {
         // Check if food exists
         $food = $this->foodModel->find($foodId);
         if (!$food) {
-            Response::error('Food item not found', [], 404);
-            return;
+            return Response::error('Food item not found', [], 404);
         }
 
         // Get current stock
         $currentStock = $this->inventoryModel->getStock($foodId);
         
-        Response::success('Inventory retrieved', [
+        return Response::success('Inventory retrieved', [
             'food_id' => $foodId,
             'food_name' => $food['name'],
             'current_stock' => $currentStock
@@ -138,21 +134,19 @@ class AdminFoodController{
      * Adjust inventory stock (+ or -)
      * Body: { "delta": 10 } or { "delta": -5 }
      */
-    public function adjustInventory(int $foodId): void
+    public function adjustInventory(int $foodId): Response
     {
         // Check if food exists
         $food = $this->foodModel->find($foodId);
         if (!$food) {
-            Response::error('Food item not found', [], 404);
-            return;
+            return Response::error('Food item not found', [], 404);
         }
 
         $body = $this->request->all();
         
         // Validate delta
         if (!isset($body['delta']) || !is_numeric($body['delta'])) {
-            Response::error('Delta is required and must be a number', [], 422);
-            return;
+            return Response::error('Delta is required and must be a number', [], 422);
         }
 
         $delta = (int) $body['delta'];
@@ -162,12 +156,11 @@ class AdminFoodController{
         
         // Check if adjustment would result in negative stock
         if (($currentStock + $delta) < 0) {
-            Response::error('Insufficient stock. Current stock: ' . $currentStock, [
+            return Response::error('Insufficient stock. Current stock: ' . $currentStock, [
                 'current_stock' => $currentStock,
                 'requested_delta' => $delta,
                 'would_result_in' => $currentStock + $delta
             ], 422);
-            return;
         }
 
         // Perform the adjustment
@@ -176,7 +169,7 @@ class AdminFoodController{
         // Get new stock level
         $newStock = $this->inventoryModel->getStock($foodId);
         
-        Response::success('Inventory adjusted successfully', [
+        return Response::success('Inventory adjusted successfully', [
             'food_id' => $foodId,
             'food_name' => $food['name'],
             'previous_stock' => $currentStock,
@@ -196,7 +189,7 @@ class AdminFoodController{
      * "images":["url1","url2"] 
      * }
     */
-    public function store(): void
+    public function store(): Response
     {
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
         
@@ -212,18 +205,15 @@ class AdminFoodController{
         // 1) Validate vendor_id exists
         $vendorId = (int) ($body['vendor_id'] ?? 0);
         if (!$this->vendorModel->find($vendorId)) {
-            Response::error('Vendor not found',[], 422);
-            return;
+            return Response::error('Vendor not found',[], 422);
         }
 
         // 2) Validate name, price
         if (!$this->validateText($body['name'] ?? '', 1, 100)) {
-            Response::error('Invalid name', [] , 422);
-            return;
+            return Response::error('Invalid name', [] , 422);
         }
         if (!isset($body['price']) || !is_numeric($body['price'])) {
-            Response::error('Valid price required', [], 422);
-            return;
+            return Response::error('Valid price required', [], 422);
         }
 
         // 3) Optional fields
@@ -247,8 +237,7 @@ class AdminFoodController{
         $foodId = $this->foodModel->create($data);
         
         if (!$foodId) {
-            Response::error('Failed to create food', [], 500);
-            return;
+            return Response::error('Failed to create food', [], 500);
         }
 
         // 6) Seed the inventory
@@ -270,8 +259,8 @@ class AdminFoodController{
             }
         }
 
-        Response::success('Food created successfully', [
-            'food_id' => $foodId, 
+        return Response::success('Food created successfully', [
+            'food_id' => $foodId,
             'image_uploaded' => $uploadedImageUrl ? true : false,
             'image_url' => $uploadedImageUrl
         ], 201);
@@ -342,21 +331,19 @@ class AdminFoodController{
         
         return $uploadedImages;
     }
-     public function updateFoodImage(int $foodId): void {
+     public function updateFoodImage(int $foodId): Response {
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
         
         if (strpos($contentType, 'multipart/form-data') !== false) {
             $body = $_POST;
         } else {
-            Response::error('Only accept form data', [], 400);
-            return;
+            return Response::error('Only accept form data', [], 400);
         }
         
         // Check if food exists
         $food = $this->foodModel->find($foodId);
         if (!$food) {
-            Response::error('Food not found', [], 404);
-            return;
+            return Response::error('Food not found', [], 404);
         }
         
         $vendorId = $food["vendor_id"];
@@ -376,20 +363,19 @@ class AdminFoodController{
                 $result = $this->foodModel->imageUpdate($foodId, $uploadedImageUrl);
             
                 if (!$result) {
-                    Response::error("Image upload failed", ["result" => $result], 500);
-                    return;
+                    return Response::error("Image upload failed", ["result" => $result], 500);
                 }
             
                 error_log("Updated image for food {$foodId}: " . $uploadedImageUrl);
-                Response::success("Image updated successfully", [
+                return Response::success("Image updated successfully", [
                     'food_id' => $foodId,
                     'image_url' => $uploadedImageUrl
                 ], 200);
             } else {
-                Response::error("Failed to upload image to Cloudinary", [], 500);
+                return Response::error("Failed to upload image to Cloudinary", [], 500);
             }
         } else {
-            Response::error("No valid image file provided", [], 400);
+            return Response::error("No valid image file provided", [], 400);
         }
     }
     
@@ -398,12 +384,11 @@ class AdminFoodController{
      * PUT /api/admin/foods/{id}
      * Body: same as store() except vendor_id is optional if not changed.
     */
-   public function update(int $foodId): void{
+   public function update(int $foodId): Response{
 
         $food = $this->foodModel->find($foodId);
         if (!$food) {
-            Response::error('Food item not found', [], 404);
-            return;
+            return Response::error('Food item not found', [], 404);
         }
 
         $body = $this->request->all();
@@ -414,20 +399,17 @@ class AdminFoodController{
                
             $vendorId = (int) $body['vendor_id'];
             if (!$this->vendorModel->find($vendorId)) {
-                Response::error('Vendor not found', [], 422);
-                return;
+                return Response::error('Vendor not found', [], 422);
             }
             $updateData['vendor_id'] = $vendorId;
         }else if(!isset($body['vendor_id'])){
-            Response::error('Vendor id key is not set', [], 422);
-            return;
+            return Response::error('Vendor id key is not set', [], 422);
         }
 
         // If name is updated
         if (isset($body['name'])) {
             if (!$this->validateText($body['name'], 1, 100)) {
-               Response::error('Invalid name', [], 422);
-               return;
+               return Response::error('Invalid name', [], 422);
             }
             $updateData['name'] = $this->sanitizeText($body['name']);
         }
@@ -435,8 +417,7 @@ class AdminFoodController{
         // Price
         if (isset($body['price'])) {
             if (!is_numeric($body['price']) || $body['price'] < 0) {
-                    Response::error('Invalid price', [], 422);
-                    return;
+                    return Response::error('Invalid price', [], 422);
             }
             $updateData['price'] = (float) $body['price'];
         }
@@ -467,11 +448,9 @@ class AdminFoodController{
          // 5) Persist changes
         $result = $this->foodModel->update($foodId, $updateData);
         if ($result) {
-            Response::success('Food item updated');
-            return;
+            return Response::success('Food item updated');
         } else {
-            Response::error('Failed to update food item',[], 500);
-            return;
+            return Response::error('Failed to update food item',[], 500);
         }
 
    }
@@ -479,22 +458,19 @@ class AdminFoodController{
    /**
      * DELETE /api/admin/foods/{id}
      */
-    public function delete(int $foodId): void
+    public function delete(int $foodId): Response
     {
         $food = $this->foodModel->find($foodId);
         if (!$food) {
-            Response::error('Food item not found', [], 404);
-            return;
+            return Response::error('Food item not found', [], 404);
         }
 
         $result = $this->foodModel->delete($foodId);
-        
+
         if(!$result) {
-            Response::error('Failed to delete food item', [], 500);
-            return;
+            return Response::error('Failed to delete food item', [], 500);
         }
-        
-        Response::success('Food item deleted');
-        return;
+
+        return Response::success('Food item deleted');
     }
 }
