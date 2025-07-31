@@ -28,10 +28,15 @@ class Router{
         $uri    = $this->request->path();       // cleansed path
 
         $route = $this->routes[$method][$uri] ?? null;
+        error_log("Dispatching $method $uri");
          /* 1. exact match */
         if ($route) {
+          
             $this->runMiddleware($route['middleware']);
+            
+
             $controllerResult = $this->callAction($route['action']);
+            error_log("Controller result type: " . gettype($controllerResult));
             if ($controllerResult instanceof Response) {
                     $controllerResult->json();           // send status + body
             } elseif (is_string($controllerResult)) {
@@ -72,32 +77,42 @@ class Router{
         throw new NotFoundException("No existing URI found");
     }
 
-       private function runMiddleware(array $middlewares): void
-{
-    $next = function (Request $request) {
-        $this->callAction($this->routes[$request->method()][$request->path()]['action']);
-    };
+    private function runMiddleware(array $middlewares): void
+    {
+        // Start with an empty $next initially
+        $next = function (Request $request) {};
 
-    foreach ($middlewares as $mw) {
-        error_log("Middleware length: " . count($middlewares));
-        error_log("Running middleware: " . (is_string($mw) ? $mw : get_class($mw)));
-        error_log("Is callable: " . (is_callable($mw) ? 'yes' : 'no'));
+        // Build the middleware chain in reverse order
+        foreach (array_reverse($middlewares) as $mw) {
+            $nextClosure = $next; // Store the current $next
+            $next = function (Request $request) use ($mw, $nextClosure) {
+                if ($mw === null) {
+                    $nextClosure($request); // Skip null middleware
+                    return;
+                }
 
-        if ($mw === null) continue;          // skip blanks from routes w/ no mws
+                $this->executeMiddleware($mw, $request, $nextClosure);
+            };
+        }
 
+        // Execute the final middleware chain
+        $next($this->request);
+    }
+
+    private function executeMiddleware($mw, Request $request, callable $next): void
+    {
         if (is_callable($mw)) {
             error_log("Calling callable middleware");
-            call_user_func($mw, $this->request, $next);         
+            call_user_func($mw, $request, $next);
             error_log("Callable middleware finished");
         } elseif (is_string($mw) && class_exists($mw)) {
             error_log("Calling string-based middleware");
-            (new $mw($this->request))->handle($this->request, $next);
+            (new $mw($this->request))->handle($request, $next);
             error_log("String-based middleware finished");
         } else {
             throw new \RuntimeException("Bad middleware: ".print_r($mw,true));
         }
     }
-}
 
     private function buildParamMap(string $pattern, array $matches): array 
     {   

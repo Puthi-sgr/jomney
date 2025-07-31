@@ -21,6 +21,7 @@ class JWTMiddleware{
 
     public function __invoke(Request $req, callable $next): void
     {
+        error_log("JWTMiddleware invoked");
         //This is the entry point for the middleware
         $this->req = $req; // Store the request for later use
         $this->handle($req, $next);
@@ -28,25 +29,31 @@ class JWTMiddleware{
       
     }
     
-    public function handle(Request $req, callable $next):void {
+    public function handle(Request $req, callable $next) {
+      
         //Get authorization
         $authHeader = $this->req->header('Authorization');
          
            
         if (!$authHeader) {
-            Response::error('Authorization header not found', [], 401);
-            return;
+        
+            $response = Response::error('Authorization header not found', [], 401);
+            $response->json(); // Output JSON
+            exit;
+           
         }
 
 
         if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)){
-            Response::error('Token not provided', [], 401);
-            return;
+            
+            $response = Response::error('Token not provided', [], 401);
+            $response->json(); // Output JSON
+            exit;
         }
 
         $token = $matches[1];
 
-
+        error_log("Token: $token");
         
 
         try{
@@ -60,9 +67,9 @@ class JWTMiddleware{
             $userRole = $payload->role; // ← Add this line!
 
             if(!$userId || !$userRole) {
-                Response::error('Invalid token payload', [], 401);
-                $next($req);
-                return;
+                $response = Response::error('Invalid token payload', [], 401);
+                $response->json(); // Output JSON
+                exit;// Stop further execution
             }
 
             //4. Check if they exists
@@ -77,8 +84,11 @@ class JWTMiddleware{
 
             //5. If user exists, store in $_SERVER
             if(!$user){
-                Response::error("User not found", [], 404);
-                return;
+               
+                $response = Response::error("User not found", [], 404);
+                $response->json(); // Output JSON
+                exit;// Stop further execution
+                
             }
 
             
@@ -87,8 +97,9 @@ class JWTMiddleware{
             $next($req);
             
         }catch(Exception $e){
-            Response::error('Invalid token', ["stackTrace" => $e->getTrace()], 401);
-            $next($req);
+            $response = Response::error('Invalid token', ["stackTrace" => $e->getTrace()], 401);
+            $response->json(); // Output JSON
+            exit;// Stop further execution
         }
     }
 

@@ -299,8 +299,8 @@ public function getPaymentMethods(): Response
 
             $paymentId = $this->paymentModel->create($paymentData);
             if (!$paymentId) {
-                Response::error('Failed to create payment record', [], 500);
-                return;
+                return Response::error('Failed to create payment record', [], 500);
+                
             }
 
 

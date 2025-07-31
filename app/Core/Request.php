@@ -48,6 +48,16 @@ class Request {
             ?? $this->post[$key] //is application/x-www-form-urlencoded or multipart/form-data?
             ?? $this->get[$key] //is query-string?
             ?? $default;
+        if ($this->method() === 'POST') {
+           if ($this->isJson()) {
+                return $this->json[$key] ?? $default;
+            } elseif ($this->isMultipart()) {
+                return $_POST[$key] ?? $default; // Access $_POST directly for multipart/form-data
+            } else {
+                return $this->post[$key] ?? $this->get[$key] ?? $default;
+            }
+        }
+        return $_GET[$key] ?? $default;
 
             //When it found the key it will return the value
     }
@@ -55,7 +65,11 @@ class Request {
     /** Return array of *all* key/value inputs (merged) */
     public function all(): array
     {
-        return array_merge($this->get, $this->post, $this->json ?? []);
+        if ($this->isMultipart()) {
+            return $_POST; // Use $_POST directly for multipart/form-data
+        } else {
+            return array_merge($this->get, $this->post, $this->json ?? []);
+        }
     }
 
     /** Path only (no query-string) e.g. “/api/vendors/1” */
@@ -95,6 +109,7 @@ class Request {
 
     public function isMultipart(): bool
     {
+        error_log('checking multipart');
         return str_contains(
             strtolower($this->server['CONTENT_TYPE'] ?? ''),
             'multipart/form-data'

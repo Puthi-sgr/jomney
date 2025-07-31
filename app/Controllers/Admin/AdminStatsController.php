@@ -28,6 +28,7 @@ class AdminStatsController
      */
      public function index(): Response
     {
+        error_log("AdminStatsController invoked");
          // 1) Total customers
         $custStmt = $this->db->query("SELECT COUNT(*) FROM customer");
         $totalCustomers = (int) $custStmt->fetchColumn();
