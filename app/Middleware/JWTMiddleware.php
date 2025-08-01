@@ -19,14 +19,14 @@ class JWTMiddleware{
         $this->req = $req;
     }
 
-    public function __invoke(Request $req, callable $next): void
+    public function __invoke(Request $req, callable $next): Response
     {
         error_log("JWTMiddleware invoked");
         //This is the entry point for the middleware
         $this->req = $req; // Store the request for later use
-        $this->handle($req, $next);
+        return $this->handle($req, $next);
         //Call the next middleware or controller
-      
+
     }
     
     public function handle(Request $req, callable $next):Response {

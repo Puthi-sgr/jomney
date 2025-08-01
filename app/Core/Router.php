@@ -31,16 +31,18 @@ class Router{
         error_log("Dispatching $method $uri");
          /* 1. exact match */
         if ($route) {
-          
-            $this->runMiddleware($route['middleware']);
-            
 
-            $controllerResult = $this->callAction($route['action']);
-            error_log("Controller result type: " . gettype($controllerResult));
-            if ($controllerResult instanceof Response) {
-                    $controllerResult->json();           // send status + body
-            } elseif (is_string($controllerResult)) {
-                    echo $controllerResult;              // fallback for legacy routes
+            $controllerAction = function (Request $req) use ($route) {
+                return $this->callAction($route['action']);
+            };
+
+            $response = $this->runMiddleware($route['middleware'], $controllerAction);
+
+            error_log("Controller result type: " . gettype($response));
+            if ($response instanceof Response) {
+                    $response->json();           // send status + body
+            } elseif (is_string($response)) {
+                    echo $response;              // fallback for legacy routes
             }
             return;
         }
@@ -64,13 +66,16 @@ class Router{
                     $this->buildParamMap($pattern,$params)
                 );
 
-                $this->runMiddleware($route['middleware']);
-                $controllerResult = $this->callAction($route['action'], $params);
+                $controllerAction = function (Request $req) use ($route, $params) {
+                    return $this->callAction($route['action'], $params);
+                };
 
-                if ($controllerResult instanceof Response) {
-                    $controllerResult->json();           // send status + body
-                } elseif (is_string($controllerResult)) {
-                    echo $controllerResult;              // fallback for legacy routes
+                $response = $this->runMiddleware($route['middleware'], $controllerAction);
+
+                if ($response instanceof Response) {
+                    $response->json();           // send status + body
+                } elseif (is_string($response)) {
+                    echo $response;              // fallback for legacy routes
                 }
                 return;
             }
@@ -79,44 +84,39 @@ class Router{
         throw new NotFoundException("No existing URI found");
     }
 
-    private function runMiddleware(array $middlewares): void
+    private function runMiddleware(array $middlewares, callable $controller): Response
     {
-        // Start with an empty $next initially
-        $next = function (Request $request): Response {
-            error_log("No middleware or controller found for request: " . $request->path());
-            return Response::success("No middleware or controller found", ['Content-Type' => 'text/plain']);
-        };
+        // Start the chain with the controller action
+        $next = $controller;
 
         // Build the middleware chain in reverse order
         foreach (array_reverse($middlewares) as $mw) {
-            $nextClosure = $next; // Store the current $next
-            //use imports the mw and next closure
-            $next = function (Request $request) use ($mw,$nextClosure) {
+            $nextClosure = $next;
+            $next = function (Request $request) use ($mw, $nextClosure) {
                 if ($mw === null) {
-                      error_log("No middleware or controller found for request: " . $request->path());
-                    $nextClosure($request); // Skip null middleware
-                    return;
+                    return $nextClosure($request); // Skip null middleware
                 }
 
-                $this->executeMiddleware($mw, $request, $nextClosure);
+                return $this->executeMiddleware($mw, $request, $nextClosure);
             };
         }
 
-        // Execute the final middleware chain
-        $next($this->request);
-        return;
+        // Execute the final middleware chain and return its response
+        return $next($this->request);
     }
 
-    private function executeMiddleware($mw, Request $request, callable $next): void
+    private function executeMiddleware($mw, Request $request, callable $next): Response
     {
         if (is_callable($mw)) {
             error_log("Calling callable middleware");
-            call_user_func($mw, $request, $next);
+            $result = call_user_func($mw, $request, $next);
             error_log("Callable middleware finished");
+            return $result;
         } elseif (is_string($mw) && class_exists($mw)) {
             error_log("Calling string-based middleware");
-            (new $mw($this->request))->handle($request, $next);
+            $result = (new $mw($this->request))->handle($request, $next);
             error_log("String-based middleware finished");
+            return $result;
         } else {
             throw new \RuntimeException("Bad middleware: ".print_r($mw,true));
         }

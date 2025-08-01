@@ -15,11 +15,11 @@ class CacheMiddleware
        
     }
 
-    public function __invoke(Request $req, callable $next): void
+    public function __invoke(Request $req, callable $next): Response
     {
         error_log("CacheMiddleware invoked for: " . $req->path());
         $this->req = $req; // Store the request for later use
-        $this->handle($req, $next);
+        return $this->handle($req, $next);
     }
 
     public function handle(Request $req, callable $next): Response
