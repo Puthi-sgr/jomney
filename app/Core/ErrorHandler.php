@@ -11,7 +11,7 @@ class ErrorHandler {
 
         if($_ENV['APP_ENV'] === "development"){
 
-            Response::success($e->getMessage(),
+            Response::error($e->getMessage(),
             ["line"=> $e->getLine(), 'file' => $e->getFile(), 'code' => $e->getCode(), 'stackTrace' => $e->getTrace()], 500)->json();
         }else{ 
             //for the user to see;

@@ -55,11 +55,13 @@ class CacheMiddleware
         error_log("Request: ". $req->path() . " with method: " . $req->method());
         error_log("Cache miss for key: $key");
         $response = $next($req);//Which most likely is the controller
-      
-        
+
         /* Persist only 2xx/3xx responses for 60 s  */
+        error_log("Response status code: " . $response->isSuccessful() );
         if ($response->isSuccessful()) {
-            error_log("Storing response in cache for key: $key");
+
+            error_log("Cache Middleware: Storing response in cache for key : $key");
+            error_log("Response body: " . json_encode($response->body()));
             //if the res succeeded
             //We store the response in redis
             $this->redis->set($key, [

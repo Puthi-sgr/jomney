@@ -82,13 +82,18 @@ class Router{
     private function runMiddleware(array $middlewares): void
     {
         // Start with an empty $next initially
-        $next = function (Request $request) {};
+        $next = function (Request $request): Response {
+            error_log("No middleware or controller found for request: " . $request->path());
+            return Response::success("No middleware or controller found", ['Content-Type' => 'text/plain']);
+        };
 
         // Build the middleware chain in reverse order
         foreach (array_reverse($middlewares) as $mw) {
             $nextClosure = $next; // Store the current $next
-            $next = function (Request $request) use ($mw, $nextClosure) {
+            //use imports the mw and next closure
+            $next = function (Request $request) use ($mw,$nextClosure) {
                 if ($mw === null) {
+                      error_log("No middleware or controller found for request: " . $request->path());
                     $nextClosure($request); // Skip null middleware
                     return;
                 }
@@ -99,6 +104,7 @@ class Router{
 
         // Execute the final middleware chain
         $next($this->request);
+        return;
     }
 
     private function executeMiddleware($mw, Request $request, callable $next): void

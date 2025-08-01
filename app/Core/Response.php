@@ -12,20 +12,6 @@ class Response{
         $this->status = $status;
     }
 
-    public function setStatusCode(int $status): void
-    {
-        $this->status = $status;
-    }
-
-    public function setData(array $data): void
-    {
-        $this->data = $data;
-    }
-
-    public function getStatus (): int
-    {
-        return $this->status;
-    }
     public function json(): void
     {
         http_response_code($this->status);
@@ -56,4 +42,34 @@ class Response{
         return $this->status >= 200 && $this->status < 300;
     }
 
+    public function body(): array
+    {
+        return $this->data;
+    }
+
+    public function headers(): array
+    {
+        return [
+            'Content-Type' => 'application/json',
+            'Status' => $this->status,
+        ];
+    }
+
+    public function status (): int
+    {
+        return $this->status;
+    }
+
+    
+    public function setStatusCode(int $status): void
+    {
+        $this->status = $status;
+    }
+
+    public function setData(array $data): void
+    {
+        $this->data = $data;
+    }
+
+ 
 }

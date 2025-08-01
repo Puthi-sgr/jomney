@@ -134,7 +134,7 @@ $router->get('/api/admin/user', [$adminAuth, 'user'], $jwtMiddleware);
 
 // ─────── Dashboard & Statistics ───────
 $statsCtrl = new AdminStatsController();
-$router->get('/api/admin/stats', [$statsCtrl, 'index'],  $jwtMiddleware);
+$router->get('/api/admin/stats', [$statsCtrl, 'index'], $jwtMiddleware , $cacheMiddleware);
 
 // ─────── Vendor Management ───────
 
