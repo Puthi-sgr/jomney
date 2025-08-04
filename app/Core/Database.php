@@ -48,10 +48,9 @@ class Database
 
                 self::$connection = new PDO($dsn, $username, $password, $options);
                 
-                error_log("Database connected via: " . ($usePgBouncer ? 'PgBouncer' : 'Direct'));
-                
+             
             } catch (PDOException $e) {
-                error_log("Database connection failed: " . $e->getMessage());
+              
                 throw new \Exception("Database connection failed");
             }
         }

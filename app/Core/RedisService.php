@@ -19,7 +19,7 @@ class RedisService
         ]);
         $this->defaultTtl  = $config['ttl'] ?? 300;
 
-        error_log("Redis client initialized with host: " . $this->client->getConnection()->getParameters()->host . " and port: " . $this->client->getConnection()->getParameters()->port);
+    
     }
 
     /* ---------- Cache helpers ---------- */

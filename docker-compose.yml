@@ -9,6 +9,11 @@ services:
     depends_on:
       - db
       - pgbouncer
+    deploy:
+      resources:
+        limits:
+          memory: 512m # hard ceiling
+    mem_reservation: 256m # soft target (Docker Desktop 4.27+)
 
   # New Apache service
   apache:
@@ -36,8 +41,8 @@ services:
       DB_USER: food_user
       DB_PASSWORD: secure_password
       POOL_MODE: transaction
-      MAX_CLIENT_CONN: 500
-      DEFAULT_POOL_SIZE: 20
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 50
       LISTEN_PORT: 6432
     ports:
       - "6432:6432"

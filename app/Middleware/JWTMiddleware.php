@@ -21,7 +21,7 @@ class JWTMiddleware{
 
     public function __invoke(Request $req, callable $next): Response
     {
-        error_log("JWTMiddleware invoked");
+     
         //This is the entry point for the middleware
         $this->req = $req; // Store the request for later use
         return $this->handle($req, $next);
@@ -46,14 +46,13 @@ class JWTMiddleware{
 
         $token = $matches[1];
 
-        error_log("Token: $token");
-        
+ 
 
         try{
             //2. Validate the token
             $payload = JWTService::validateToken($token);
 
-            error_log("Logging in as a: ". $payload->role ?? 'unknown');
+    
         
             //3.Attach user ID
             $userId = (int) $payload->sub;

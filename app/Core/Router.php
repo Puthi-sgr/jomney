@@ -28,7 +28,6 @@ class Router{
         $uri    = $this->request->path();       // cleansed path
 
         $route = $this->routes[$method][$uri] ?? null;
-        error_log("Dispatching $method $uri");
          /* 1. exact match */
         if ($route) {
 
@@ -38,7 +37,7 @@ class Router{
 
             $response = $this->runMiddleware($route['middleware'], $controllerAction);
 
-            error_log("Controller result type: " . gettype($response));
+       
             if ($response instanceof Response) {
                     $response->json();           // send status + body
             } elseif (is_string($response)) {
@@ -108,14 +107,10 @@ class Router{
     private function executeMiddleware($mw, Request $request, callable $next): Response
     {
         if (is_callable($mw)) {
-            error_log("Calling callable middleware");
             $result = call_user_func($mw, $request, $next);
-            error_log("Callable middleware finished");
             return $result;
         } elseif (is_string($mw) && class_exists($mw)) {
-            error_log("Calling string-based middleware");
             $result = (new $mw($this->request))->handle($request, $next);
-            error_log("String-based middleware finished");
             return $result;
         } else {
             throw new \RuntimeException("Bad middleware: ".print_r($mw,true));
