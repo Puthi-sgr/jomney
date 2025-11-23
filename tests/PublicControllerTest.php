@@ -34,6 +34,7 @@ class PublicControllerTest extends TestCase
                 'id' => 5,
                 'vendor_id' => 1,
                 'name' => 'Pizza',
+                'qty_available' => 12,
                 'created_at' => '',
                 'updated_at' => ''
             ]
@@ -49,11 +50,12 @@ class PublicControllerTest extends TestCase
 
         $foodModel = $this->getMockBuilder(Food::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['allByVendor'])
+            ->onlyMethods(['allByVendorIds'])
             ->getMock();
-        $foodModel->expects($this->any())
-            ->method('allByVendor')
-            ->willReturn($foods);
+        $foodModel->expects($this->once())
+            ->method('allByVendorIds')
+            ->with([1])
+            ->willReturn([1 => $foods]);
 
         $controller = (new \ReflectionClass(PublicController::class))->newInstanceWithoutConstructor();
         $this->inject($controller, 'vendorModel', $vendorModel);
@@ -68,6 +70,10 @@ class PublicControllerTest extends TestCase
         $this->assertArrayNotHasKey('email', $vendor);
         $this->assertArrayNotHasKey('password', $vendor);
         $this->assertArrayHasKey('foods', $vendor);
-        $this->assertArrayNotHasKey('vendor_id', $vendor['foods'][0]);
+        $food = $vendor['foods'][0];
+        $this->assertArrayNotHasKey('vendor_id', $food);
+        $this->assertArrayNotHasKey('qty_available', $food);
+        $this->assertArrayHasKey('stock_qty', $food);
+        $this->assertSame(12, $food['stock_qty']);
     }
 }

@@ -12,26 +12,29 @@ use App\Exceptions\OutOfStockException;
 use PDO;
 use Exception;
 
-class Order{
+class Order
+{
     protected PDO $db;
 
     private Inventory $inventoryModel;
     private FoodOrder $foodOrderModel;
     private Customer $customerModel;
     private OrderStatus $statusModel;
-    public function __construct(){
+    public function __construct()
+    {
         //Get a PDO connect from a database wrapper
-        $this->db = Database::getConnection(); 
+        $this->db = Database::getConnection();
         $this->inventoryModel = new Inventory();
         $this->foodOrderModel = new FoodOrder();
-        $this->customerModel  = new Customer();
+        $this->customerModel = new Customer();
         $this->statusModel = new OrderStatus();
     }
 
-    public function all(): array {
+    public function all(): array
+    {
 
         $stmt = $this->db->query("SELECT  
-            o.*, 
+            o.id, o.customer_id, o.status_id, o.total_amount, o.remarks, o.created_at, o.updated_at, 
             c.name AS customerName,
           
             os.label AS statusLabel  
@@ -39,9 +42,9 @@ class Order{
             JOIN order_statuses os ON os.id = o.status_id
             JOIN customer c on o.customer_id = c.id
 
-            ");        
-            
-        $stmt->execute();        
+            ");
+
+        $stmt->execute();
         $orders = $stmt->fetchAll();
         return $orders;
     }
@@ -58,7 +61,7 @@ class Order{
         }
 
         $sql = "SELECT 
-            fo.*, 
+            fo.id, fo.order_id, fo.food_id, fo.price, fo.quantity, 
             f.name, 
             f.image
             FROM food_order fo
@@ -68,10 +71,10 @@ class Order{
         $stmt->execute(['order_id' => $orderId]);
 
         $foodItems = $stmt->fetchAll();
-        
+
         $order['food_detail'] = $foodItems;
 
-        return $order;     
+        return $order;
     }
 
     /**
@@ -84,12 +87,12 @@ class Order{
             $foodId = (int) $foodId; // Ensure it's an integer for security
             $sql = "SELECT price FROM food WHERE id = {$foodId}";
             $stmt = $this->db->query($sql);
-        
+
             $price = $stmt->fetchColumn();
             if ($price === false) {
                 throw new Exception("Food item {$foodId} not found");
             }
-            
+
             return (float) $price;
         } catch (PDOException $e) {
             error_log("PDO Error in getFoodPrice: " . $e->getMessage());
@@ -107,10 +110,10 @@ class Order{
                 RETURNING id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
-            'customer_id'  => $customerId,
-            'status_id'    => $statusId,
+            'customer_id' => $customerId,
+            'status_id' => $statusId,
             'total_amount' => $total,
-            'remarks'      => $remarks,
+            'remarks' => $remarks,
         ]);
         return (int) $stmt->fetchColumn();
     }
@@ -120,7 +123,8 @@ class Order{
         $stmt = $this->db->prepare(
             //we grab the status key and status label in this query through table join
             //now we have access to two additional columns
-            "SELECT o.*, 
+            "SELECT 
+            o.id, o.customer_id, o.status_id, o.total_amount, o.remarks, o.created_at, o.updated_at, 
             os.key AS status_key, 
             os.label AS status_label
             FROM orders o
@@ -133,7 +137,8 @@ class Order{
 
     public function findOrderForCustomer(int $orderId, int $customerId): ?array
     {
-        $sql = "SELECT o.*, 
+        $sql = "SELECT 
+                    o.id, o.customer_id, o.status_id, o.total_amount, o.remarks, o.created_at, o.updated_at, 
                     os.key AS status_key, 
                     os.label AS status_label,
                     c.name AS customer_name
@@ -141,59 +146,62 @@ class Order{
                 JOIN order_statuses os ON o.status_id = os.id
                 JOIN customer c ON o.customer_id = c.id
                 WHERE o.id = :order_id AND o.customer_id = :customer_id";
-        
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             'order_id' => $orderId,
             'customer_id' => $customerId
         ]);
-        
+
         return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
     }
-    
-    public function getOrderHistoryByPage(int $customerId, int $page = 1){
+
+    public function getOrderHistoryByPage(int $customerId, int $page = 1)
+    {
         //The point is to calculate only the necessary order result
         $limit = 10;                           // 10 orders per page
         $offset = ($page - 1) * $limit;        // Skip previous pages
-        
+
         $sql = "SELECT * FROM orders 
                 WHERE customer_id = ? 
                 ORDER BY created_at DESC 
                 LIMIT ? OFFSET ?";             // Only get 10 records
-                
+
         // Page 1: LIMIT 10 OFFSET 0  (orders 1-10)
         // Page 2: LIMIT 10 OFFSET 10 (orders 11-20)  
         // Page 3: LIMIT 10 OFFSET 20 (orders 21-30)
     }
 
-    public function getOrderHistory(int $customerId): ?array{
+    public function getOrderHistory(int $customerId): ?array
+    {
 
-        $sql = "SELECT * FROM orders 
+        $sql = "SELECT id, customer_id, status_id, total_amount, remarks, created_at, updated_at FROM orders 
                 WHERE customer_id = :id 
                 ORDER BY created_at DESC";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([    
+        $stmt->execute([
             'id' => $customerId
         ]);
 
         return $stmt->fetchAll() ?: null;
-                
+
     }
 
-    public function updateStatus(int $orderId, int $statusId): bool{
+    public function updateStatus(int $orderId, int $statusId): bool
+    {
 
         $sql = "UPDATE orders SET status_id = :status_id WHERE id = :id";
 
         $stmt = $this->db->prepare($sql);
-        
+
         return $stmt->execute([
             'id' => $orderId,
             'status_id' => $statusId
         ]);
     }
 
-    
+
 
     //lock -> total amount -> create order -> adjust the inventory -> create food_order(many) record
 
@@ -215,12 +223,12 @@ class Order{
     public function createWithInventory(int $customerId, array $items, ?string $remarks = null): int
     {
         error_log("=== Starting createWithInventory ===");
-    error_log("Customer ID: {$customerId}");
-    error_log("Items: " . json_encode($items));
+        error_log("Customer ID: {$customerId}");
+        error_log("Items: " . json_encode($items));
         //Temporary draft the inventory
         $this->db->beginTransaction();
-        
-         error_log("Transaction started successfully");
+
+        error_log("Transaction started successfully");
         try {
             //initial price amount
             $totalAmount = 0;
@@ -230,13 +238,13 @@ class Order{
             // 1. Lock and validate all items first
             // Grab each food item
             foreach ($items as $item) {
-            
+
                 $foodId = $item['food_id'];
                 $quantity = $item['quantity'];
                 // Add this at the start of the foreach loop
-error_log("Processing food_id: {$foodId}, quantity: {$quantity}");
+                error_log("Processing food_id: {$foodId}, quantity: {$quantity}");
 
-    error_log("About to lock inventory for food_id: {$foodId}");
+                error_log("About to lock inventory for food_id: {$foodId}");
                 // Lock the inventory row
                 try {
                     $row = $this->inventoryModel->lock($foodId);
@@ -250,14 +258,14 @@ error_log("Processing food_id: {$foodId}, quantity: {$quantity}");
                     error_log("No inventory row found for food_id: {$foodId}");
                     throw new OutOfStockException("Food item {$foodId} not found in inventory");
                 }
-error_log("Inventory row found: " . json_encode($row));
+                error_log("Inventory row found: " . json_encode($row));
                 if ($row['qty_available'] < $quantity) {
                     error_log("Insufficient stock for food_id: {$foodId}");
                     throw new OutOfStockException("Insufficient stock for food item {$foodId}. Available: {$row['qty_available']}, Requested: {$quantity}");
                 }
 
                 error_log("About to get food price for food_id: {$foodId}");
-            
+
                 // Get food price for total calculation - ADD ERROR HANDLING HERE
                 try {
                     $foodPrice = $this->getFoodPrice($foodId);
@@ -266,7 +274,7 @@ error_log("Inventory row found: " . json_encode($row));
                     throw new Exception("Failed to get price for food item {$foodId}: " . $e->getMessage());
                 }
                 $totalAmount += $foodPrice * $quantity;
-                
+
                 $validatedItems[] = [
                     'food_id' => $foodId,
                     'quantity' => $quantity,
@@ -289,7 +297,7 @@ error_log("Inventory row found: " . json_encode($row));
                 if (!$adjustResult) {
                     throw new Exception("Failed to adjust inventory for food item {$item['food_id']}");
                 }
-                
+
                 // After deduction we add the food order detail
                 $addResult = $this->foodOrderModel->create($orderId, $item['food_id'], $item['price'], $item['quantity']);
                 if (!$addResult) {
@@ -311,40 +319,40 @@ error_log("Inventory row found: " . json_encode($row));
     {
         // Start transaction since we might need to restore inventory
         $this->db->beginTransaction();
-        
+
         try {
             // First, find the order and check if it belongs to customer AND is pending
-            $sql = "SELECT o.*, os.key AS status_key 
+            $sql = "SELECT o.id, o.customer_id, o.status_id, o.total_amount, o.remarks, o.created_at, o.updated_at, os.key AS status_key 
                     FROM orders o
                     JOIN order_statuses os ON o.status_id = os.id
                     WHERE o.id = :order_id 
                     AND o.customer_id = :customer_id 
                     AND os.key = 'pending'";
-            
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 'order_id' => $orderId,
                 'customer_id' => $customerId
             ]);
-            
+
             $order = $stmt->fetch();
-            
+
             // If order doesn't exist, not owned by customer, or not pending
             if (!$order) {
                 $this->db->rollBack();
                 return null;
             }
-            
+
             // Get the "cancelled" status ID
             $cancelledStatusSql = "SELECT id FROM order_statuses WHERE key = 'cancelled'";
             $cancelledStmt = $this->db->prepare($cancelledStatusSql);
             $cancelledStmt->execute();
             $cancelledStatusId = $cancelledStmt->fetchColumn();
-            
+
             if (!$cancelledStatusId) {
                 throw new Exception("Cancelled status not found");
             }
-            
+
             // Update order status to cancelled
             $updateSql = "UPDATE orders 
                         SET status_id = :status_id, updated_at = NOW() 
@@ -355,24 +363,24 @@ error_log("Inventory row found: " . json_encode($row));
                 'status_id' => $cancelledStatusId,
                 'order_id' => $orderId
             ]);
-            
+
             if (!$success) {
                 throw new Exception("Failed to update order status");
             }
-            
+
             // Optional: Restore inventory (if you want to put items back in stock)
             $this->restoreInventoryForOrder($orderId);
-            
+
             $this->db->commit();
-            
+
             // Return the updated order
             return $this->findOrderForCustomer($orderId, $customerId);
-            
+
         } catch (Exception $e) {
             $this->db->rollBack();
             throw $e;
         }
-    }       
+    }
 
     // Helper method to restore inventory when order is cancelled
     private function restoreInventoryForOrder(int $orderId): void
@@ -382,7 +390,7 @@ error_log("Inventory row found: " . json_encode($row));
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['order_id' => $orderId]);
         $foodItems = $stmt->fetchAll();
-        
+
         // Restore inventory for each item
         foreach ($foodItems as $item) {
             $this->inventoryModel->adjust($item['food_id'], $item['quantity']); // Add back to inventory

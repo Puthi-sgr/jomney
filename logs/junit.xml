@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="Tests\CustomerControllerTest" file="C:\Users\Dell\Documents\CodeStuff\Projects\php-foodDelivery\tests\CustomerControllerTest.php" tests="2" assertions="7" errors="0" warnings="0" failures="0" skipped="0" time="0.182471">
+    <testcase name="testRegisterCreatesCustomer" class="Tests\CustomerControllerTest" classname="Tests.CustomerControllerTest" file="C:\Users\Dell\Documents\CodeStuff\Projects\php-foodDelivery\tests\CustomerControllerTest.php" line="21" assertions="4" time="0.059490"/>
+    <testcase name="testLoginSucceedsWithValidCredentials" class="Tests\CustomerControllerTest" classname="Tests.CustomerControllerTest" file="C:\Users\Dell\Documents\CodeStuff\Projects\php-foodDelivery\tests\CustomerControllerTest.php" line="63" assertions="3" time="0.122981"/>
+  </testsuite>
+</testsuites>

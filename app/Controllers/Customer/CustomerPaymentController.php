@@ -310,17 +310,16 @@ public function getPaymentMethods(): Response
                     // Payment succeeded immediately
                     $this->orderModel->updateStatus($orderId, 2); // Update to Accepted status
 
-                    Response::success('Payment completed successfully', [
+                    return Response::success('Payment completed successfully', [
                         'payment_id' => $paymentId,
                         'order_id' => $orderId,
                         'amount' => $order['total_amount'],
                         'status' => 'succeeded'
                     ], 201);
-                    break;
 
                 case 'requires_action':
                     // 3D Secure or other authentication required
-                    Response::success('Payment requires additional authentication', [
+                    return Response::success('Payment requires additional authentication', [
                         'payment_id' => $paymentId,
                         'order_id' => $orderId,
                         'requires_action' => true,
@@ -330,39 +329,37 @@ public function getPaymentMethods(): Response
                         ],
                         'next_action' => $paymentIntent->next_action
                     ], 200);
-                    break;
 
                 case 'processing':
                     // Payment is processing
-                    Response::success('Payment is being processed', [
+                    return Response::success('Payment is being processed', [
                         'payment_id' => $paymentId,
                         'order_id' => $orderId,
                         'status' => 'processing'
                     ], 200);
-                    break;
 
                 default:
                     // Payment failed or other status
-                    Response::error('Payment failed', [
+                    return Response::error('Payment failed', [
                         'status' => $paymentIntent->status,
                         'last_payment_error' => $paymentIntent->last_payment_error
                     ], 422);
-                    break;
+
             }
         } catch (\Stripe\Exception\CardException $e) {
             // Card was declined
             error_log("Card declined: " . $e->getMessage());
-            Response::error('Payment failed: ' . $e->getDeclineCode(), [
+            return Response::error('Payment failed: ' . $e->getDeclineCode(), [
                 'decline_code' => $e->getDeclineCode(),
                 'message' => $e->getMessage()
             ], 422);
         } catch (\Stripe\Exception\InvalidRequestException $e) {
             // Invalid parameters
             error_log("Invalid request: " . $e->getMessage());
-            Response::error('Invalid payment request', [], 400);
+            return Response::error('Invalid payment request', [], 400);
         } catch (Exception $e) {
             error_log("Payment processing failed: " . $e->getMessage());
-            Response::error('Payment processing failed', [], 500);
+            return Response::error('Payment processing failed', [], 500);
         }
     }
 

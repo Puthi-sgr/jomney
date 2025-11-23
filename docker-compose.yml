@@ -2,6 +2,13 @@
 version: "3.8"
 
 services:
+  php-tests:
+    build: .
+    volumes:
+      - .:/app        # your code
+      - /var/run/docker.sock:/var/run/docker.sock   # <-- give Docker access
+    environment:
+      - TESTCONTAINERS_RYUK_DISABLED=true  # optional, can speed things up
   php:
     build: .
     volumes:
@@ -54,6 +61,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  
   db:
     image: postgres:13
     environment:

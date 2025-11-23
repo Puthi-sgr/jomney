@@ -10,28 +10,29 @@ class OrderStatus
     private PDO $db;
     public function __construct()
     {
-         $this->db = Database::getConnection(); 
+        $this->db = Database::getConnection();
     }
     public function all(): array
     {
-        $stmt = $this->db->query("SELECT * FROM order_statuses ORDER BY id");
+        $stmt = $this->db->query("SELECT id, key, label FROM order_statuses ORDER BY id");
         return $stmt->fetchAll();
     }
     public function findByKey(string $key): ?array
     {
-        $stmt = $this->db->prepare("SELECT * FROM order_statuses WHERE key = :key");
+        $stmt = $this->db->prepare("SELECT id, key, label FROM order_statuses WHERE key = :key");
         $stmt->execute(['key' => $key]);
         return $stmt->fetch() ?: null;
     }
 
     public function findById(int $id): ?array
     {
-        $stmt = $this->db->prepare("SELECT * FROM order_statuses WHERE id = :id");
+        $stmt = $this->db->prepare("SELECT id, key, label FROM order_statuses WHERE id = :id");
         $stmt->execute(['id' => $id]);
         return $stmt->fetch() ?: null;
     }
 
-    public function create(string $key, string $label): bool{
+    public function create(string $key, string $label): bool
+    {
         $sql = "INSERT INTO order_statuses (key, label) VALUES (:key, :label)";
 
         $stmt = $this->db->prepare($sql);
@@ -41,7 +42,8 @@ class OrderStatus
         ]);
     }
 
-    public function update(string $key): bool{
+    public function update(string $key): bool
+    {
         $sql = "UPDATE order_statuses SET label = :label WHERE key = :key";
 
         $stmt = $this->db->prepare($sql);
@@ -50,7 +52,8 @@ class OrderStatus
         ]);
     }
 
-    public function delete(string $key):bool {
+    public function delete(string $key): bool
+    {
         $sql = "DELETE FROM order_statuses WHERE key = :key";
 
         $stmt = $this->db->prepare($sql);

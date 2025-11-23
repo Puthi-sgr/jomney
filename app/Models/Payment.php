@@ -5,15 +5,18 @@ namespace App\Models;
 use App\Core\Database;
 use PDO;
 
-class Payment{
+class Payment
+{
     private PDO $db;
 
-    public function __construct(){
-         $this->db = Database::getConnection(); 
+    public function __construct()
+    {
+        $this->db = Database::getConnection();
     }
 
-    public function all():array{
-        $sql = "SELECT p.*, pm.type as payment_type, pm.card_last4, o.total_amount as order_total
+    public function all(): array
+    {
+        $sql = "SELECT p.id, p.order_id, p.payment_method_id, p.stripe_payment_id, p.amount, p.currency, p.status, p.created_at, p.updated_at, pm.type as payment_type, pm.card_last4, o.total_amount as order_total
                 FROM payment p
                 JOIN payment_method pm ON p.payment_method_id = pm.id
                 JOIN orders o ON p.order_id = o.id
@@ -22,8 +25,9 @@ class Payment{
         return $stmt->fetchAll();
     }
 
-    public function find(int $id): ?array {
-        $stmt = $this->db->prepare("SELECT p.*, pm.type as payment_type, pm.card_last4, o.total_amount as order_total
+    public function find(int $id): ?array
+    {
+        $stmt = $this->db->prepare("SELECT p.id, p.order_id, p.payment_method_id, p.stripe_payment_id, p.amount, p.currency, p.status, p.created_at, p.updated_at, pm.type as payment_type, pm.card_last4, o.total_amount as order_total
                                    FROM payment p
                                    JOIN payment_method pm ON p.payment_method_id = pm.id
                                    JOIN orders o ON p.order_id = o.id
@@ -32,8 +36,9 @@ class Payment{
         return $stmt->fetch() ?: null;
     }
 
-    public function findByOrderId(int $orderId): ?array {
-        $stmt = $this->db->prepare("SELECT p.*, pm.type as payment_type, pm.card_last4
+    public function findByOrderId(int $orderId): ?array
+    {
+        $stmt = $this->db->prepare("SELECT p.id, p.order_id, p.payment_method_id, p.stripe_payment_id, p.amount, p.currency, p.status, p.created_at, p.updated_at, pm.type as payment_type, pm.card_last4
                                    FROM payment p
                                    JOIN payment_method pm ON p.payment_method_id = pm.id
                                    WHERE p.order_id = :order_id");
@@ -41,8 +46,9 @@ class Payment{
         return $stmt->fetch() ?: null;
     }
 
-    public function findByCustomer(int $customerId): array {
-        $stmt = $this->db->prepare("SELECT p.*, pm.type as payment_type, pm.card_last4, o.total_amount as order_total
+    public function findByCustomer(int $customerId): array
+    {
+        $stmt = $this->db->prepare("SELECT p.id, p.order_id, p.payment_method_id, p.stripe_payment_id, p.amount, p.currency, p.status, p.created_at, p.updated_at, pm.type as payment_type, pm.card_last4, o.total_amount as order_total
                                    FROM payment p
                                    JOIN payment_method pm ON p.payment_method_id = pm.id
                                    JOIN orders o ON p.order_id = o.id
@@ -52,7 +58,7 @@ class Payment{
         return $stmt->fetchAll();
     }
 
-   public function create(array $data): int|false
+    public function create(array $data): int|false
     {
         $sql = "INSERT INTO payment
                 (order_id, payment_method_id, stripe_payment_id, amount, currency, status)
@@ -60,20 +66,21 @@ class Payment{
                 (:order_id, :payment_method_id, :stripe_payment_id, :amount, :currency, :status)
                 RETURNING id";
         $stmt = $this->db->prepare($sql);
-        
+
         $result = $stmt->execute([
-            'order_id'           => $data['order_id'],
-            'payment_method_id'  => $data['payment_method_id'],
-            'stripe_payment_id'  => $data['stripe_payment_id'],
-            'amount'             => $data['amount'],
-            'currency'           => $data['currency'] ?? 'usd',
-            'status'             => $data['status'] ?? 'pending',
+            'order_id' => $data['order_id'],
+            'payment_method_id' => $data['payment_method_id'],
+            'stripe_payment_id' => $data['stripe_payment_id'],
+            'amount' => $data['amount'],
+            'currency' => $data['currency'] ?? 'usd',
+            'status' => $data['status'] ?? 'pending',
         ]);
 
-        return $result ? (int)$stmt->fetchColumn() : false;
+        return $result ? (int) $stmt->fetchColumn() : false;
     }
 
-    public function updateStatus(int $paymentId, string $newStatus): bool {
+    public function updateStatus(int $paymentId, string $newStatus): bool
+    {
         $sql = "UPDATE payment SET status = :status, updated_at = NOW() WHERE id = :id";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([
@@ -82,7 +89,8 @@ class Payment{
         ]);
     }
 
-    public function updateStatusByStripeId(string $stripePaymentId, string $newStatus): bool {
+    public function updateStatusByStripeId(string $stripePaymentId, string $newStatus): bool
+    {
         $sql = "UPDATE payment SET status = :status, updated_at = NOW() WHERE stripe_payment_id = :stripe_id";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([

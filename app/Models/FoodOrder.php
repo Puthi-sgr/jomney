@@ -9,45 +9,45 @@ class FoodOrder
 {
     private PDO $db;
 
-          public function __construct()
-          {
-              $this->db = Database::getConnection(); 
-          }
-          public function create(int $orderId, int $foodId, float $price, float $quantity): bool
-          {
-              $sql = "INSERT INTO food_order
+    public function __construct()
+    {
+        $this->db = Database::getConnection();
+    }
+    public function create(int $orderId, int $foodId, float $price, float $quantity): bool
+    {
+        $sql = "INSERT INTO food_order
                       (order_id, food_id, price, quantity)
                       VALUES
                       (:order_id, :food_id, :price, :quantity)";
-              $stmt = $this->db->prepare($sql);
-              return $stmt->execute([
-                  'order_id' => $orderId,
-                  'food_id'  => $foodId,
-                  'price'    => $price,
-                  'quantity' => $quantity,
-              ]);
-          }
-          public function getFoodDetailByOrderId(int $orderId): array
-          {
-             
-              $sql = "SELECT fo.*, f.name, f.description, f.price, f.vendor_id
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            'order_id' => $orderId,
+            'food_id' => $foodId,
+            'price' => $price,
+            'quantity' => $quantity,
+        ]);
+    }
+    public function getFoodDetailByOrderId(int $orderId): array
+    {
+
+        $sql = "SELECT fo.id, fo.order_id, fo.food_id, fo.price, fo.quantity, f.name, f.description, f.price, f.vendor_id
                       FROM food_order fo
                       JOIN food f ON fo.food_id = f.id
                       WHERE fo.order_id = :order_id";
-              $stmt = $this->db->prepare($sql);
-              $stmt->execute(['order_id' => $orderId]);
-              return $stmt->fetchAll(PDO::FETCH_ASSOC);
-          }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['order_id' => $orderId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 
     public function allOrdersByVendor(int $vendorId): array
     {
-        $sql = "SELECT fo.*, f.name, f.description, f.price, f.vendor_id, o.created_at, os.key AS status_key
+        $sql = "SELECT fo.id, fo.order_id, fo.food_id, fo.price, fo.quantity, f.name, f.description, f.price, f.vendor_id, o.created_at, os.key AS status_key
                 FROM orders o
                 JOIN order_statuses os ON os.id = o.status_id
                 JOIN food_order fo ON fo.order_id = o.id
                 JOIN food f ON f.id = fo.food_id
                 WHERE f.vendor_id = :vendor_id";
-               
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['vendor_id' => $vendorId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -68,7 +68,7 @@ class FoodOrder
         $stmt->execute(['vendor_id' => $vendorId]);
         return (int) $stmt->fetchColumn();
     }
-    
+
     public function totalByVendor(int $vendorId, string $finalStatusKey = 'accepted'): float
     {
         $sql = "SELECT COALESCE(SUM(fo.price * fo.quantity),0) AS total

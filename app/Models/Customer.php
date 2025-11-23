@@ -6,15 +6,18 @@ use App\Core\Database;
 use PDO;
 
 
-class Customer{
+class Customer
+{
     private PDO $db;
-    
-    public function __construct(){
-           $this->db = Database::getConnection(); 
+
+    public function __construct()
+    {
+        $this->db = Database::getConnection();
     }
 
-    public function all():array{
-        $sql = "SELECT * FROM customer";
+    public function all(): array
+    {
+        $sql = "SELECT id, email, name, address, phone, location, lat_lng, image, stripe_customer_id, created_at, updated_at FROM customer";
         $stmt = $this->db->query($sql);
 
         return $stmt->fetchAll();
@@ -24,7 +27,7 @@ class Customer{
         //1. Prepare the statement with parameters
         //2. Execute the statement with parameters
         //3. Fetch the result
-        $stmt = $this->db->prepare("SELECT * FROM customer WHERE id = :id");
+        $stmt = $this->db->prepare("SELECT id, email, name, address, phone, location, lat_lng, image, stripe_customer_id, created_at, updated_at FROM customer WHERE id = :id");
         $stmt->execute(['id' => $id]);
         return $stmt->fetch() ?: null;
     }
@@ -34,7 +37,7 @@ class Customer{
         //1. Prepare the statement with parameters
         //2. Execute the statement with parameters
         //3. Fetch the result
-        $stmt = $this->db->prepare("SELECT * FROM customer WHERE email = :email");
+        $stmt = $this->db->prepare("SELECT id, email, password, name, address, phone, location, lat_lng, image, stripe_customer_id, created_at, updated_at FROM customer WHERE email = :email");
         $stmt->execute(['email' => $email]);
         return $stmt->fetch() ?: null;
     }
@@ -52,27 +55,28 @@ class Customer{
      *                    - lat_lng (string, optional)
      * @return bool True if creation was successful, false otherwise
      */
-    public function create(array $data): int|false{
+    public function create(array $data): int|false
+    {
 
-            $sql = "INSERT INTO customer
+        $sql = "INSERT INTO customer
                 (email, password, name, address, phone, location, lat_lng)
                 VALUES
                 (:email, :password, :name, :address, :phone, :location, :lat_lng)";
-            
-            $stmt = $this->db->prepare($sql);
 
-            $result = $stmt->execute([
-                'email'     => $data['email'],            // unique
-                'password'  => password_hash($data['password'], PASSWORD_DEFAULT),
-                'name'      => $data['name'],
-                'address'   => $data['address'] ?? null,
-                'phone'     => $data['phone'] ?? null,
-                'location'  => $data['location'] ?? null,
-                'lat_lng'   => $data['lat_lng'] ?? null,
-            ]);
+        $stmt = $this->db->prepare($sql);
 
-            return $result ? (int)$this->db->lastInsertId() : false;
-          //Returning id specifically to generate the token
+        $result = $stmt->execute([
+            'email' => $data['email'],            // unique
+            'password' => password_hash($data['password'], PASSWORD_DEFAULT),
+            'name' => $data['name'],
+            'address' => $data['address'] ?? null,
+            'phone' => $data['phone'] ?? null,
+            'location' => $data['location'] ?? null,
+            'lat_lng' => $data['lat_lng'] ?? null,
+        ]);
+
+        return $result ? (int) $this->db->lastInsertId() : false;
+        //Returning id specifically to generate the token
 
     }
 
@@ -86,19 +90,20 @@ class Customer{
         ]);
     }
 
-    public function update(int $id, array $data):bool{
+    public function update(int $id, array $data): bool
+    {
         $fields = [];
         $params = [
             'id' => $id
         ];
 
-        foreach(["email", "name", "address", "phone", "location", "lat_lng"] as $col){
-            if(isset($data[$col])){
+        foreach (["email", "name", "address", "phone", "location", "lat_lng"] as $col) {
+            if (isset($data[$col])) {
                 $fields[] = "$col = :$col";
                 //"email = : email"
                 //"name = : name"
                 $params[$col] = $data[$col];
-                
+
                 //"email" => $data['email']
                 //"name" => $data['name]
             }
@@ -120,8 +125,9 @@ class Customer{
         return $stripeCustomerId;
     }
 
-    
-    public function delete(int $customerId):bool{
+
+    public function delete(int $customerId): bool
+    {
         $sql = "DELETE FROM customer WHERE id = :id";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute(['id' => $customerId]);

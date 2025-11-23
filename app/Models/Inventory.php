@@ -5,14 +5,15 @@ namespace App\Models;
 use App\Core\Database;
 use PDO;
 
-class Inventory{
+class Inventory
+{
 
 
     private PDO $db;
 
     public function __construct()
     {
-        $this->db = Database::getConnection(); 
+        $this->db = Database::getConnection();
     }
 
     /* seed row when a food item is first created */
@@ -36,7 +37,7 @@ class Inventory{
         return $stmt->fetch() ?: null;
     }
 
-      /* + / – stock */
+    /* + / – stock */
     public function adjust(int $foodId, int $delta): bool
     {
         $stmt = $this->db->prepare(
@@ -48,18 +49,18 @@ class Inventory{
         return $stmt->execute(['d' => $delta, 'fid' => $foodId]);
     }
 
-     /**
+    /**
      * Get current stock level
      */
     public function getStock(int $foodId): int
     {
-        $sql = "SELECT i.qty_available, f.name FROM inventory i JOIN food f ON i.food_id = f.id WHERE i.food_id = ?";
+        $sql = "SELECT qty_available FROM inventory WHERE food_id = ?";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$foodId]);
         return $stmt->fetchColumn();
     }
 
-     /**
+    /**
      * Set stock level directly
      */
     public function setStock(int $foodId, int $quantity): bool
@@ -69,7 +70,7 @@ class Inventory{
                 ON CONFLICT (food_id) 
                 DO UPDATE SET qty_available = EXCLUDED.qty_available, 
                              updated_at = CURRENT_TIMESTAMP";
-        
+
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([$foodId, $quantity]);
     }

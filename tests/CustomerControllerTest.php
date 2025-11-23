@@ -38,6 +38,7 @@ class CustomerControllerTest extends TestCase
             ->disableOriginalConstructor()
             ->onlyMethods(['all'])
             ->getMock();
+
         $requestStub->expects($this->any())
             ->method('all')
             ->willReturn([
@@ -46,11 +47,11 @@ class CustomerControllerTest extends TestCase
             'name' => 'John'
         ]);
 
-        $controller = (new \ReflectionClass(CustomerAuthController::class))->newInstanceWithoutConstructor();
-        $this->inject($controller, 'customerModel', $customerModel);
+        $controller = (new \ReflectionClass(CustomerAuthController::class))->newInstanceWithoutConstructor(); //Avoid real model instantiation
+        $this->inject($controller, 'customerModel', $customerModel); //Fake model will be called
         $this->inject($controller, 'request', $requestStub);
 
-        $response = $controller->register();
+        $response = $controller->register(); //Controller will call the register method and response will be returned
 
         $this->assertEquals(201, $response->status());
         $body = $response->body();
@@ -69,6 +70,7 @@ class CustomerControllerTest extends TestCase
             ->disableOriginalConstructor()
             ->onlyMethods(['findByEmail'])
             ->getMock();
+
         $customerModel->expects($this->any())
             ->method('findByEmail')
             ->willReturn([
@@ -81,6 +83,7 @@ class CustomerControllerTest extends TestCase
             ->disableOriginalConstructor()
             ->onlyMethods(['all'])
             ->getMock();
+            
         $requestStub->expects($this->any())
             ->method('all')
             ->willReturn([

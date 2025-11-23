@@ -9,20 +9,21 @@ class Admin
     private PDO $db;
     public function __construct()
     {
-        $this->db = Database::getConnection(); 
+        $this->db = Database::getConnection();
     }
 
     public function find(int $id): ?array
     {
-        $stmt = $this->db->prepare("SELECT * FROM admin WHERE id = :id");
+        $stmt = $this->db->prepare("SELECT id, email, name, is_super, created_at, updated_at FROM admin WHERE id = :id");
         $stmt->execute(['id' => $id]);
         return $stmt->fetch() ?: null; //This is the part where we get the actual data
     }
 
-    public function findByEmail(string $email): ?array{
-        $stmt = $this->db->prepare("SELECT * FROM admin WHERE email = :email LIMIT 1");
+    public function findByEmail(string $email): ?array
+    {
+        $stmt = $this->db->prepare("SELECT id, email, password, name, is_super, created_at, updated_at FROM admin WHERE email = :email LIMIT 1");
         $stmt->execute(['email' => $email]);
-   
+
         return $stmt->fetch() ?: null;
     }
     public function create(array $data): bool
@@ -32,10 +33,10 @@ class Admin
         $stmt = $this->db->prepare($sql);
 
         return $stmt->execute([
-            'email'     => $data['email'],            
-            'password'  => password_hash($data['password'], PASSWORD_DEFAULT),
-            'name'      => $data['name'],
-            'is_super'  => $data['is_super'] ?? false,
+            'email' => $data['email'],
+            'password' => password_hash($data['password'], PASSWORD_DEFAULT),
+            'name' => $data['name'],
+            'is_super' => $data['is_super'] ?? false,
         ]);
     }
 }

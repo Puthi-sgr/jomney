@@ -1,0 +1,37 @@
+# Use the official PHP image with Apache
+FROM php:8.1-apache
+
+# 1. Install system dependencies and PHP extensions
+# We need libpq-dev for PostgreSQL support and libzip-dev for zip support
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    libzip-dev \
+    unzip \
+    && docker-php-ext-install pdo pdo_pgsql pgsql zip
+
+# 2. Enable Apache mod_rewrite for URL routing (essential for MVC frameworks)
+RUN a2enmod rewrite
+
+# 3. Configure Apache DocumentRoot to point to /public
+# This ensures index.php is served from the correct location
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
+RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
+
+# 4. Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# 5. Set working directory
+WORKDIR /var/www/html
+
+# 6. Copy application files
+COPY . .
+
+# 7. Install PHP dependencies (production mode)
+RUN composer install --no-dev --optimize-autoloader
+
+# 8. Set permissions for Apache user (www-data)
+RUN chown -R www-data:www-data /var/www/html
+
+# 9. Expose port 80
+EXPOSE 80

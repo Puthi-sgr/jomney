@@ -11,11 +11,14 @@ class CorsMiddleware
             'http://localhost:5173',
             'http://localhost:3000',
             'http://127.0.0.1:5173',
-            'http://127.0.0.1:3000'
+            'http://127.0.0.1:3000',
+            'https://puthi-sgr.github.io',
+            'https://puthi-sgr.github.io/Banhjok',
+
         ];
 
         $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-        
+
         if (in_array($origin, $allowedOrigins)) {
             header("Access-Control-Allow-Origin: $origin");
         }
