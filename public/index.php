@@ -7,6 +7,7 @@ use App\Controllers\MenuController;
 use App\Controllers\OrderController;
 use App\Controllers\PaymentController;
 use App\Core\Router;
+use App\Core\Response;
 use App\Core\ErrorHandler;
 use App\Core\JWTService;
 use App\Middleware\JWTMiddleware;
@@ -55,7 +56,9 @@ $jwtMiddleware = new JWTMiddleware($request);
 
 // Define the route
 $router->get('/', function () {
-    echo "This is a public's homepage";
+    return Response::success('Public homepage', [
+        'message' => "This is a public's homepage",
+    ]);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
