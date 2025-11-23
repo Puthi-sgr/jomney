@@ -49,8 +49,8 @@ $router = new Router($request);
 $jwtMiddleware = new JWTMiddleware($request);
 
 //Dependency injection for Redis
-$redis = new RedisService();
-$cacheMiddleware = new CacheMiddleware($redis, $request);
+// $redis = new RedisService();
+// $cacheMiddleware = new CacheMiddleware($redis, $request);
 // Display PHP configuration information
 
 // Define the route

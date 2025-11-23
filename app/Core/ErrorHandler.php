@@ -6,13 +6,17 @@ use App\Core\Response;
 use Throwable;
 
 class ErrorHandler {
-    public static function handleException(Throwable $e): void{
-        http_response_code(500);
+    public static function handleException(\Throwable $exception): void
+    {
+        // Default to 'production' if not set
+        $env = $_ENV['APP_ENV'] ?? 'production';
+        
+        if ($env === 'development') {
+            // Show detailed error
+            http_response_code(500);
 
-        if($_ENV['APP_ENV'] === "development"){
-
-            Response::error($e->getMessage(),
-            ["line"=> $e->getLine(), 'file' => $e->getFile(), 'code' => $e->getCode(), 'stackTrace' => $e->getTrace()], 500)->json();
+            Response::error($exception->getMessage(),
+            ["line"=> $exception->getLine(), 'file' => $exception->getFile(), 'code' => $exception->getCode(), 'stackTrace' => $exception->getTrace()], 500)->json();
         }else{ 
             //for the user to see;
             echo "Something went wrong, please try again later";

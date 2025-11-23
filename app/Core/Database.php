@@ -17,8 +17,8 @@ class Database
     public static function getConnection(): PDO
     {
         if (self::$connection === null) {
-            // Check if we should use PgBouncer
-            $usePgBouncer = $_ENV['USE_PGBOUNCER'] === 'true';
+            // Check if we should use PgBouncer (default to false if missing)
+            $usePgBouncer = isset($_ENV['USE_PGBOUNCER']) && $_ENV['USE_PGBOUNCER'] === 'true';
 
             if ($usePgBouncer) {
                 $host = $_ENV['PGBOUNCER_HOST'] ?? 'pgbouncer';

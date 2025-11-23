@@ -11,15 +11,18 @@ class RedisService
     //Its like a controller to communicate with actual redis in the backend
     public function __construct()
     {
+        // Default to localhost/6379 if keys are missing
+        $host = $_ENV['REDIS_HOST'] ?? '127.0.0.1';
+        $port = $_ENV['REDIS_PORT'] ?? 6379;
 
         $this->client = new Client([
             'scheme' => 'tcp',
-            'host'   => (string) $_ENV['REDIS_HOST'] ?? 'redis',
-            'port'   => (int) $_ENV['REDIS_PORT'] ?? 6379,
+            'host' => $host,
+            'port' => $port,
         ]);
-        $this->defaultTtl  = $config['ttl'] ?? 300;
+        $this->defaultTtl = $config['ttl'] ?? 300;
 
-    
+
     }
 
     /* ---------- Cache helpers ---------- */
@@ -29,7 +32,7 @@ class RedisService
         if ($this->client->exists($key)) {
             return unserialize($this->client->get($key));
             //Rebuilt the variable/value
-            
+
         }
         //call back is a function that calls to get value
         $value = $callback(); //When cache miss
@@ -48,14 +51,15 @@ class RedisService
     {
         $jsonValue = $this->encode($val);
         $this->client->setex(
-            $key, 
-            $ttl ?? $this->defaultTtl, 
-            $jsonValue);
+            $key,
+            $ttl ?? $this->defaultTtl,
+            $jsonValue
+        );
     }
     public function get(string $key, mixed $default = null): mixed
     {
 
-        
+
         $decodeJson = $this->decode((string) $this->client->get($key));
         return $this->client->exists($key)
             ? $decodeJson
@@ -63,13 +67,17 @@ class RedisService
     }
 
     /** ---------- Internal helpers ---------- */
-    private function encode(mixed $v): string  { 
-        return json_encode($v, JSON_THROW_ON_ERROR); 
+    private function encode(mixed $v): string
+    {
+        return json_encode($v, JSON_THROW_ON_ERROR);
     }
-    private function decode(string $v): mixed {
+    private function decode(string $v): mixed
+    {
         if (empty($v)) {
             return null; // Or any other appropriate default value
+        } { {
+                return json_decode($v, true, 512, JSON_THROW_ON_ERROR);
+            }
         }
-        {{ return json_decode($v, true, 512, JSON_THROW_ON_ERROR); }}
     }
 }
