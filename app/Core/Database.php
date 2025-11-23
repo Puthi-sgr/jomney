@@ -30,7 +30,8 @@ class Database
 
             $dbname = $_ENV['DB_NAME'] ?? 'food_delivery';
             $username = $_ENV['DB_USER'] ?? 'food_user';
-            $password = $_ENV['DB_PASS'] ?? 'secure_password';
+            // Render and most hosts use DB_PASSWORD; fall back to DB_PASS for local compose setups
+            $password = $_ENV['DB_PASSWORD'] ?? ($_ENV['DB_PASS'] ?? 'secure_password');
 
             $dsn = "pgsql:host={$host};port={$port};dbname={$dbname}";
 
@@ -38,7 +39,6 @@ class Database
                 $options = [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                        // KEY CHANGE: Use emulated prepares with PgBouncer
                     PDO::ATTR_EMULATE_PREPARES => $usePgBouncer ? true : false,
                 ];
 
@@ -52,7 +52,7 @@ class Database
 
 
             } catch (PDOException $e) {
-
+                error_log("DB Connection failed: " . $e->getMessage());
                 throw new \Exception("Database connection failed");
             }
         }
