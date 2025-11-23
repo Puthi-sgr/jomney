@@ -16,7 +16,7 @@ class PaymentMethod
     public function allByCustomer(int $customerId): array
     {
         $stmt = $this->db->prepare(
-            "SELECT id, customer_id, stripe_pm_id, type, card_brand, card_last4, exp_month, exp_year, created_at, updated_at FROM payment_method WHERE customer_id = :customer_id ORDER BY created_at DESC"
+            "SELECT id, customer_id, stripe_pm_id, type, card_brand, card_last4, exp_month, exp_year, created_at FROM payment_method WHERE customer_id = :customer_id ORDER BY created_at DESC"
         );
         $stmt->execute(['customer_id' => $customerId]);
         return $stmt->fetchAll();
@@ -24,7 +24,7 @@ class PaymentMethod
 
     public function find(int $id): ?array
     {
-        $stmt = $this->db->prepare("SELECT id, customer_id, stripe_pm_id, type, card_brand, card_last4, exp_month, exp_year, created_at, updated_at FROM payment_method WHERE id = :id");
+        $stmt = $this->db->prepare("SELECT id, customer_id, stripe_pm_id, type, card_brand, card_last4, exp_month, exp_year, created_at FROM payment_method WHERE id = :id");
         $stmt->execute(['id' => $id]);
         return $stmt->fetch() ?: null;
     }
@@ -32,7 +32,7 @@ class PaymentMethod
     public function findByCustomerAndId(int $customerId, int $paymentMethodId): ?array
     {
         $stmt = $this->db->prepare(
-            "SELECT id, customer_id, stripe_pm_id, type, card_brand, card_last4, exp_month, exp_year, created_at, updated_at FROM payment_method WHERE id = :id AND customer_id = :customer_id"
+            "SELECT id, customer_id, stripe_pm_id, type, card_brand, card_last4, exp_month, exp_year, created_at FROM payment_method WHERE id = :id AND customer_id = :customer_id"
         );
         $stmt->execute(['id' => $paymentMethodId, 'customer_id' => $customerId]);
         return $stmt->fetch() ?: null;

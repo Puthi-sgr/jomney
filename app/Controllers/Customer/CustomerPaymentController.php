@@ -26,7 +26,16 @@ class CustomerPaymentController
 
     public function __construct()
     {
-        Stripe::setApiKey($_ENV['STRIPE_SECRET_KEY']);
+        // Ensure we use the Secret Key (sk_...), not the Publishable Key (pk_...)
+        // If STRIPE_SECRET_KEY is accidentally set to a Publishable Key or Setup Intent ID, Stripe will fail.
+        $apiKey = $_ENV['STRIPE_SECRET_KEY'] ?? '';
+
+        // Basic validation to help debug configuration errors
+        if (strpos($apiKey, 'sk_') !== 0 && strpos($apiKey, 'rk_') !== 0) {
+            error_log("WARNING: STRIPE_SECRET_KEY does not start with 'sk_' or 'rk_'. Value starts with: " . substr($apiKey, 0, 5) . "...");
+        }
+
+        Stripe::setApiKey($apiKey);
         $this->request = new Request();
         $this->paymentModel = new Payment();
         $this->paymentController = new PaymentController();
@@ -49,7 +58,7 @@ class CustomerPaymentController
 
             $setupIntent = SetupIntent::create([
                 'customer' => $stripeCustomerId,
-             
+
                 'payment_method_types' => ['card'],
                 'usage' => 'off_session'
             ]);
@@ -71,7 +80,7 @@ class CustomerPaymentController
      * GET /api/v1/payment-methods
      * Get all payment methods for the authenticated customer
      */
-public function getPaymentMethods(): Response
+    public function getPaymentMethods(): Response
     {
         $customerId = (int) ($_SERVER['user_id'] ?? 0);
 
@@ -273,7 +282,7 @@ public function getPaymentMethods(): Response
 
             // Create PaymentIntent with the saved payment method
             $paymentIntent = \Stripe\PaymentIntent::create([
-                'amount' => (int)($order['total_amount'] * 100), // Convert to cents
+                'amount' => (int) ($order['total_amount'] * 100), // Convert to cents
                 'currency' => 'usd',
                 'customer' => $stripeCustomerId,
                 'payment_method' => $paymentMethod['stripe_pm_id'],
@@ -300,7 +309,7 @@ public function getPaymentMethods(): Response
             $paymentId = $this->paymentModel->create($paymentData);
             if (!$paymentId) {
                 return Response::error('Failed to create payment record', [], 500);
-                
+
             }
 
 
@@ -364,7 +373,7 @@ public function getPaymentMethods(): Response
     }
 
 
-    
+
     /**
      * Get or create a Stripe customer for the given customer ID
      */
@@ -383,7 +392,7 @@ public function getPaymentMethods(): Response
 
         // Create a new Stripe customer
 
-        
+
         $stripeCustomer = StripeCustomer::create([
             'email' => $customer['email'],
             'name' => $customer['name'],
@@ -402,7 +411,7 @@ public function getPaymentMethods(): Response
         return $stripeCustomer->id;
     }
 
-     /**
+    /**
      * GET /api/v1/payments
      * Get payment history for the customer
      */
@@ -414,7 +423,7 @@ public function getPaymentMethods(): Response
         return Response::success('Payment history retrieved', $payments);
     }
 
-    
+
     /**
      * GET /api/v1/payments/{id}
      * Get specific payment details
@@ -437,7 +446,7 @@ public function getPaymentMethods(): Response
         return Response::success('Payment details', $payment);
     }
 
-    
+
 
     /**
      * POST /api/customer/payments/checkout
@@ -462,8 +471,8 @@ public function getPaymentMethods(): Response
         return Response::success('Payment created successfully', $data);
     }
 
-   
-    
+
+
 
 
     /**
