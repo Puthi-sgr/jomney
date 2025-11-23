@@ -12,20 +12,18 @@ class CorsMiddleware
             'http://localhost:3000',
             'http://127.0.0.1:5173',
             'http://127.0.0.1:3000',
-            'https://puthi-sgr.github.io',
-            'https://puthi-sgr.github.io/Banhjok',
-
+            'https://puthi-sgr.github.io'
         ];
 
         $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
-        if (in_array($origin, $allowedOrigins)) {
+        if (in_array($origin, $allowedOrigins, true)) {
             header("Access-Control-Allow-Origin: $origin");
+            header('Access-Control-Allow-Credentials: true');
         }
 
         header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-        header('Access-Control-Allow-Credentials: true');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, ngrok-skip-browser-warning');
         header('Access-Control-Max-Age: 86400'); // Cache preflight for 24 hours
         header('Access-Control-Allow-Headers: Authorization, Content-Type, ngrok-skip-browser-warning');
         header('Access-Control-Allow-Origin: *');
