@@ -7,25 +7,27 @@ use PDOException;
 
 class Database
 {
-    private static ?PDO $connection = null; 
+    private static ?PDO $connection = null;
     private static int $connectionCount = 0;
 
-    private function __construct() {}
+    private function __construct()
+    {
+    }
 
     public static function getConnection(): PDO
     {
         if (self::$connection === null) {
             // Check if we should use PgBouncer
             $usePgBouncer = $_ENV['USE_PGBOUNCER'] === 'true';
-            
+
             if ($usePgBouncer) {
                 $host = $_ENV['PGBOUNCER_HOST'] ?? 'pgbouncer';
                 $port = $_ENV['PGBOUNCER_PORT'] ?? '6432';
             } else {
                 $host = $_ENV['DB_HOST'] ?? 'db';
-                $port = '5432';
+                $port = $_ENV['DB_PORT'] ?? '5432';
             }
-            
+
             $dbname = $_ENV['DB_NAME'] ?? 'food_delivery';
             $username = $_ENV['DB_USER'] ?? 'food_user';
             $password = $_ENV['DB_PASS'] ?? 'secure_password';
@@ -36,7 +38,7 @@ class Database
                 $options = [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    // KEY CHANGE: Use emulated prepares with PgBouncer
+                        // KEY CHANGE: Use emulated prepares with PgBouncer
                     PDO::ATTR_EMULATE_PREPARES => $usePgBouncer ? true : false,
                 ];
 
@@ -47,10 +49,10 @@ class Database
                 }
 
                 self::$connection = new PDO($dsn, $username, $password, $options);
-                
-             
+
+
             } catch (PDOException $e) {
-              
+
                 throw new \Exception("Database connection failed");
             }
         }
